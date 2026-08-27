@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MGBE · Escola Segura — protótipo de alta fidelidade</title>
+<title>MGBE · Escola Segura</title>
 <!--
   Protótipo de ALTA FIDELIDADE - MGBE (Escola Segura), em React.
   Arquivo único, sem build: React 18, ReactDOM 18 e htm (JSX via template
@@ -440,10 +440,10 @@ mark{background:#ffe9a8;padding:0 2px;border-radius:2px}
 .field{margin-bottom:14px}
 .field label{display:block;font-size:13.5px;font-weight:700;margin:0 0 5px;color:var(--ink-700)}
 .field .dica{font-size:12.5px;color:var(--ink-400);margin-top:5px}
-textarea,input[type=text],input[type=date],select{width:100%;padding:10px 12px;font:inherit;font-size:14.5px;
+textarea,input[type=text],input[type=date],input[type=email],input[type=password],select{width:100%;padding:10px 12px;font:inherit;font-size:14.5px;
   border:1px solid var(--line-strong);border-radius:var(--radius-sm);background:#fff;color:var(--ink-900)}
 textarea{min-height:118px;resize:vertical;font-family:inherit}
-textarea:focus,input[type=text]:focus,input[type=date]:focus,select:focus{outline:2px solid var(--brand-500);
+textarea:focus,input[type=text]:focus,input[type=date]:focus,input[type=email]:focus,input[type=password]:focus,select:focus{outline:2px solid var(--brand-500);
   outline-offset:1px;border-color:var(--brand-500)}
 select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%235b6675'><path d='M5.5 7.5l4.5 4.5 4.5-4.5'/></svg>");
   background-repeat:no-repeat;background-position:right 10px center;padding-right:32px}
@@ -452,6 +452,14 @@ select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns=
 .campo-busca{position:relative;margin-bottom:14px;max-width:420px}
 .campo-busca svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--ink-400);pointer-events:none}
 .campo-busca input{padding-left:36px}
+
+/* Campo de senha com botão de mostrar/ocultar — login, cadastro, redefinir senha. */
+.campo-senha{position:relative}
+.campo-senha input{padding-right:38px}
+.campo-senha-toggle{position:absolute;right:4px;top:50%;transform:translateY(-50%);
+  background:none;border:none;padding:6px;border-radius:6px;cursor:pointer;
+  color:var(--ink-400);display:flex;align-items:center;justify-content:center}
+.campo-senha-toggle:hover{color:var(--brand-600);background:var(--brand-50)}
 
 /* ---------- table ---------- */
 .tbl{width:100%;border-collapse:collapse;font-size:13.8px}
@@ -896,6 +904,7 @@ const ICONS = {
   "bar-chart": html`<line x1="5" y1="20" x2="5" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="19" y1="20" x2="19" y2="14"/>`,
   layers: html`<polygon points="12 3 21 8 12 13 3 8"/><polyline points="3 12 12 17 21 12"/>`,
   eye: html`<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>`,
+  "eye-off": html`<path d="M17.94 17.94A10.9 10.9 0 0 1 12 19c-6 0-10-7-10-7a18.4 18.4 0 0 1 4.22-5.06"/><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19"/><path d="M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="2" y1="2" x2="22" y2="22"/>`,
   edit: html`<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>`,
   "arrow-right": html`<line x1="4" y1="12" x2="20" y2="12"/><polyline points="14 6 20 12 14 18"/>`,
   "arrow-left": html`<line x1="20" y1="12" x2="4" y2="12"/><polyline points="10 6 4 12 10 18"/>`,
@@ -1321,6 +1330,8 @@ function caseReducer(state, action) {
         pessoasMencionadas: action.pessoasMencionadas || null,
         evidencia: action.evidencia || null,
         anonimoSemLogin: !!action.anonimoSemLogin,
+        maiorDeIdade: typeof action.maiorDeIdade === "boolean" ? action.maiorDeIdade : null,
+        termosAceitosEm: action.termosAceitosEm || null,
         enviadoEm: new Date().toISOString(),
         protocolo: "MGBE-" + new Date().getFullYear() + "-" + n
       };
@@ -1531,6 +1542,20 @@ function Alert({ tone = "info", children }) {
 
 function Badge({ tone, children }) {
   return html`<span class=${"badge badge-" + tone}>${children}</span>`;
+}
+
+/* Campo de senha com "olhinho" pra alternar entre oculto/visível — usado em toda tela que pede
+   senha (login, cadastro, redefinir senha, redefinir senha de outra conta pelo Admin). */
+function CampoSenha({ value, onChange, autoComplete, disabled, placeholder, style }) {
+  const [visivel, setVisivel] = useState(false);
+  return html`<div class="campo-senha" style=${style}>
+    <input type=${visivel ? "text" : "password"} autoComplete=${autoComplete} placeholder=${placeholder}
+      value=${value} onChange=${onChange} disabled=${disabled} />
+    <button type="button" class="campo-senha-toggle" tabIndex="-1"
+      title=${visivel ? "Ocultar senha" : "Mostrar senha"} onClick=${() => setVisivel(v => !v)}>
+      <${Icon} name=${visivel ? "eye-off" : "eye"} size=${17} />
+    </button>
+  </div>`;
 }
 
 /* Caixinha fixa de acolhimento — para as mensagens que humanizam o sistema (não para status
@@ -1856,6 +1881,13 @@ function AssistenteRelato({ modoAnonimo, enviando, onEnviar }) {
   const [pessoaAfetada, setPessoaAfetada] = useState("");
   const [pessoasMencionadas, setPessoasMencionadas] = useState("");
   const [evidencia, setEvidencia] = useState(EVIDENCIA_TIPOS[0]);
+  // Faixa etária + aceite dos termos — pedido explicitamente pelo usuário (transparência sobre
+  // tratamento de dados, LGPD). Não substitui consentimento dos responsáveis quando exigido por
+  // lei; para bullying, o art. 14 §3º da LGPD já permite tratar o dado sem esse consentimento
+  // prévio quando a finalidade é proteger o próprio estudante (ver Alert abaixo) — mas registrar
+  // a faixa etária e um aceite explícito continua sendo boa prática de transparência.
+  const [maiorDeIdade, setMaiorDeIdade] = useState(null); // null = ainda não escolheu
+  const [aceiteTermos, setAceiteTermos] = useState(false);
 
   const identEfetiva = modoAnonimo ? "anonimo" : ident;
   const TITULOS = ["Quem está fazendo o relato?", "Conte o que aconteceu", "Pessoas e evidências", "Confira com calma"];
@@ -1865,6 +1897,8 @@ function AssistenteRelato({ modoAnonimo, enviando, onEnviar }) {
       showAviso("Informe seu nome completo ou escolha não se identificar.");
       return false;
     }
+    if (maiorDeIdade === null) { showAviso("Informe se você é menor ou maior de 18 anos."); return false; }
+    if (!aceiteTermos) { showAviso("Você precisa marcar que leu e concorda com as informações sobre o uso dos dados."); return false; }
     return true;
   }
   function passo2Valido() {
@@ -1887,7 +1921,8 @@ function AssistenteRelato({ modoAnonimo, enviando, onEnviar }) {
       relato: relato.trim(), identificacao: identEfetiva, identificacaoDados: dados,
       local, quando: dataOcorrido || null,
       pessoaAfetada: pessoaAfetada.trim() || null, pessoasMencionadas: pessoasMencionadas.trim() || null,
-      evidencia, anonimoSemLogin: modoAnonimo
+      evidencia, anonimoSemLogin: modoAnonimo,
+      maiorDeIdade, termosAceitosEm: new Date().toISOString()
     });
   }
 
@@ -1934,6 +1969,29 @@ function AssistenteRelato({ modoAnonimo, enviando, onEnviar }) {
             </div>`}
           <p class="dica">Isso nos ajuda a proteger sua identidade e definir como podemos falar com você.</p>
         `}
+
+      <div class="ident-box" style=${{ marginTop: "14px" }}>
+        <div class="field"><label>Sua idade *</label>
+          <div class="acoes" style=${{ marginTop: "4px" }}>
+            <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+              <input type="radio" name="faixa-etaria" checked=${maiorDeIdade === false} onChange=${() => setMaiorDeIdade(false)} />
+              Sou menor de 18 anos</label>
+            <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+              <input type="radio" name="faixa-etaria" checked=${maiorDeIdade === true} onChange=${() => setMaiorDeIdade(true)} />
+              Tenho 18 anos ou mais</label>
+          </div>
+        </div>
+        <${Alert} tone="info">Este relato fica salvo no sistema da escola e é visto só pelas
+          pessoas responsáveis por tratar o caso (Gestor do Caso, Equipe de Apoio e, se
+          necessário, Rede de Proteção) — nunca é exibido publicamente. Se você é menor de 18
+          anos, a Lei Geral de Proteção de Dados (art. 14, §3º) permite tratar esse relato mesmo
+          sem autorização prévia dos responsáveis, porque a finalidade é te proteger — mesmo
+          assim, a escola pode envolver seus responsáveis conforme o andamento do caso.</${Alert}>
+        <label style=${{ display: "flex", alignItems: "flex-start", gap: "8px", marginTop: "10px", fontWeight: 400 }}>
+          <input type="checkbox" checked=${aceiteTermos} onChange=${e => setAceiteTermos(e.target.checked)} style=${{ marginTop: "3px" }} />
+          <span>Li e entendi como esse relato vai ser usado, e quero enviá-lo.</span>
+        </label>
+      </div>
     `}
 
     ${passo === 2 && html`
@@ -1985,6 +2043,7 @@ function AssistenteRelato({ modoAnonimo, enviando, onEnviar }) {
         conclusão sobre ninguém.</p>
       <table class="tbl">
         <tr><th>Quem registrou</th><td>${identEfetiva === "identificado" ? (nome.trim() || "Identificado(a)") : "Prefiro não me identificar"}</td></tr>
+        <tr><th>Idade</th><td>${maiorDeIdade === false ? "Menor de 18 anos" : maiorDeIdade === true ? "18 anos ou mais" : "Não informado"}</td></tr>
         <tr><th>Onde aconteceu</th><td>${local}</td></tr>
         <tr><th>Quando aconteceu</th><td>${dataOcorrido || "Não informado"}</td></tr>
         <tr><th>Evidência inicial</th><td>${evidencia}</td></tr>
@@ -3482,13 +3541,13 @@ function TelaLogin({ onEntrar, onRelatoAnonimo, onIrParaCadastro }) {
         <div class="field"><label>E-mail</label>
           <input type="email" autoComplete="username" value=${email} onChange=${e => setEmail(e.target.value)} disabled=${entrando} /></div>
         <div class="field"><label>Senha</label>
-          <input type="password" autoComplete="current-password" value=${senha} onChange=${e => setSenha(e.target.value)} disabled=${entrando} /></div>
+          <${CampoSenha} autoComplete="current-password" value=${senha} onChange=${e => setSenha(e.target.value)} disabled=${entrando} /></div>
         <button type="submit" class="btn btn-primary" style=${{ width: "100%" }} disabled=${entrando}>
           ${entrando ? "Entrando…" : "Entrar"}</button>
       </form>
       <p class="dica" style=${{ textAlign: "center", margin: "10px 0 0" }}>
-        Não tem conta? <a href="#" onClick=${e => { e.preventDefault(); onIrParaCadastro(); }}>Criar conta</a>
-        &nbsp;·&nbsp; <a href="#" onClick=${esqueciSenha}>Esqueci minha senha</a></p>
+        Não tem conta? <a href="#" onClick=${e => { e.preventDefault(); onIrParaCadastro(); }}>Criar conta</a> ·
+        <a href="#" onClick=${esqueciSenha}>Esqueci minha senha</a></p>
       <div class="login-divisor"><span></span><small>ou</small><span></span></div>
       <button class="btn btn-warm" style=${{ width: "100%" }} onClick=${onRelatoAnonimo}>
         <${Icon} name="send" size=${16} />Quero relatar uma situação
@@ -3500,7 +3559,7 @@ function TelaLogin({ onEntrar, onRelatoAnonimo, onIrParaCadastro }) {
 }
 
 /* Cadastro real de conta — cria em auth.users (via sb.auth.signUp) e, automaticamente por
-   trigger no banco (ver schema_sb.sql), uma linha correspondente em `perfis`, sem nenhum
+   trigger no banco (ver schema_supabase.sql), uma linha correspondente em `perfis`, sem nenhum
    perfil liberado ainda. O Administrador concede acesso depois pela tela de Administração. */
 function TelaCadastro({ onVoltar, onCadastrado }) {
   const [nome, setNome] = useState("");
@@ -3508,16 +3567,26 @@ function TelaCadastro({ onVoltar, onCadastrado }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
+  // Idade + aceite dos Termos de Uso, com base legal explícita (pedido do usuário, mesma lógica
+  // já aplicada ao envio de relato em AssistenteRelato) — aqui é sobre a CONTA em si (não sobre
+  // um relato específico), então cobre qualquer uma das 6 raias que passam por "Criar conta".
+  const [maiorDeIdade, setMaiorDeIdade] = useState(null);
+  const [aceiteTermos, setAceiteTermos] = useState(false);
 
   async function cadastrar(e) {
     e.preventDefault();
     if (!nome.trim()) { showAviso("Informe seu nome."); return; }
     if (!email.trim() || !senha) { showAviso("Preencha e-mail e senha."); return; }
     if (senha.length < 6) { showAviso("A senha precisa ter pelo menos 6 caracteres."); return; }
+    if (maiorDeIdade === null) { showAviso("Informe se você é menor ou maior de 18 anos."); return; }
+    if (!aceiteTermos) { showAviso("Você precisa ler e aceitar os Termos de Uso e Tratamento de Dados para criar a conta."); return; }
     setEnviando(true);
     const { error } = await sb.auth.signUp({
       email: email.trim(), password: senha,
-      options: { data: { nome: nome.trim(), cargo: cargo.trim() || null } }
+      options: { data: {
+        nome: nome.trim(), cargo: cargo.trim() || null,
+        maior_de_idade: maiorDeIdade, termos_aceitos_em: new Date().toISOString()
+      } }
     });
     setEnviando(false);
     if (error) { showAviso("Não foi possível criar a conta: " + error.message); return; }
@@ -3542,7 +3611,53 @@ function TelaCadastro({ onVoltar, onCadastrado }) {
         <div class="field"><label>E-mail</label>
           <input type="email" autoComplete="username" value=${email} onChange=${e => setEmail(e.target.value)} disabled=${enviando} /></div>
         <div class="field"><label>Senha</label>
-          <input type="password" autoComplete="new-password" value=${senha} onChange=${e => setSenha(e.target.value)} disabled=${enviando} /></div>
+          <${CampoSenha} autoComplete="new-password" value=${senha} onChange=${e => setSenha(e.target.value)} disabled=${enviando} /></div>
+
+        <div class="field"><label>Sua idade *</label>
+          <div class="acoes" style=${{ marginTop: "4px" }}>
+            <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+              <input type="radio" name="cadastro-idade" checked=${maiorDeIdade === false} onChange=${() => setMaiorDeIdade(false)} disabled=${enviando} />
+              Sou menor de 18 anos</label>
+            <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+              <input type="radio" name="cadastro-idade" checked=${maiorDeIdade === true} onChange=${() => setMaiorDeIdade(true)} disabled=${enviando} />
+              Tenho 18 anos ou mais</label>
+          </div>
+        </div>
+
+        <details class="rodape-papel" style=${{ margin: "6px 0 14px" }}>
+          <summary>Termos de Uso e Tratamento de Dados</summary>
+          <div class="rodape-papel-corpo">
+            <p><b>1. O que coletamos.</b> Para criar sua conta, guardamos nome, cargo (se
+              informado), e-mail e senha (a senha nunca fica visível para ninguém, inclusive a
+              equipe do sistema — é armazenada de forma criptografada). Esses dados servem só para
+              identificar quem acessa o sistema e controlar quais raias/telas cada pessoa pode
+              usar.</p>
+            <p><b>2. Base legal.</b> O tratamento segue a Lei Geral de Proteção de Dados — LGPD
+              (Lei nº 13.709/2018), art. 7º, incisos I (consentimento, que você está dando agora)
+              e IX (legítimo interesse da escola em controlar o acesso ao sistema). Quando a conta
+              é de uma pessoa menor de 18 anos, aplica-se também o art. 14 da LGPD — o
+              consentimento é dado aqui pelo próprio estudante para fins de proteção e
+              participação no fluxo institucional, coerente com o Estatuto da Criança e do
+              Adolescente — ECA (Lei nº 8.069/1990) e com a Lei nº 13.185/2015 (combate à
+              intimidação sistemática), que preveem a atuação da escola na proteção do estudante
+              sem depender de burocracia adicional. A Lei nº 14.811/2024 (que trata da
+              criminalização do bullying e cyberbullying) reforça o dever da escola de manter um
+              canal de registro e tratamento desses casos.</p>
+            <p><b>3. Seus direitos.</b> A qualquer momento, você pode pedir ao Administrador do
+              sistema acesso, correção ou exclusão dos seus dados de conta, conforme o art. 18 da
+              LGPD. Isso não afeta relatos já registrados, que seguem sua própria regra de
+              retenção (ver aviso na tela de registro de relato).</p>
+            <p><b>4. Segurança e acesso.</b> Os dados ficam num banco protegido por regras de
+              acesso por perfil (art. 46 da LGPD) — só pessoas com a raia correta liberada pelo
+              Administrador conseguem ver o que cabe à sua função. Nenhum dado de conta é usado
+              para outra finalidade além de operar este sistema.</p>
+          </div>
+        </details>
+        <label style=${{ display: "flex", alignItems: "flex-start", gap: "8px", marginBottom: "14px", fontWeight: 400 }}>
+          <input type="checkbox" checked=${aceiteTermos} onChange=${e => setAceiteTermos(e.target.checked)} disabled=${enviando} style=${{ marginTop: "3px" }} />
+          <span>Li e aceito os Termos de Uso e Tratamento de Dados acima.</span>
+        </label>
+
         <button type="submit" class="btn btn-primary" style=${{ width: "100%" }} disabled=${enviando}>
           ${enviando ? "Criando…" : "Criar conta"}</button>
       </form>
@@ -3583,9 +3698,9 @@ function TelaRedefinirSenha({ onDefinida }) {
       <h1 style=${{ textAlign: "center" }}>Escolha uma senha nova</h1>
       <form onSubmit=${definir}>
         <div class="field"><label>Senha nova</label>
-          <input type="password" autoComplete="new-password" value=${senha} onChange=${e => setSenha(e.target.value)} disabled=${enviando} /></div>
+          <${CampoSenha} autoComplete="new-password" value=${senha} onChange=${e => setSenha(e.target.value)} disabled=${enviando} /></div>
         <div class="field"><label>Confirme a senha nova</label>
-          <input type="password" autoComplete="new-password" value=${confirmacao} onChange=${e => setConfirmacao(e.target.value)} disabled=${enviando} /></div>
+          <${CampoSenha} autoComplete="new-password" value=${confirmacao} onChange=${e => setConfirmacao(e.target.value)} disabled=${enviando} /></div>
         <button type="submit" class="btn btn-primary" style=${{ width: "100%" }} disabled=${enviando}>
           ${enviando ? "Salvando…" : "Salvar senha"}</button>
       </form>
@@ -3715,7 +3830,7 @@ function TelaAdministracao({ usuarios, onTogglePerfil, onToggleAdmin, onVoltar, 
                   <td style=${{ minWidth: "220px" }}>
                     ${redefinindoId === u.id
                       ? html`<div style=${{ display: "flex", gap: "6px", alignItems: "center" }}>
-                          <input type="password" placeholder="Senha nova" style=${{ width: "120px" }}
+                          <${CampoSenha} placeholder="Senha nova" style=${{ width: "150px" }}
                             value=${novaSenhaAdmin} onChange=${e => setNovaSenhaAdmin(e.target.value)} disabled=${salvandoSenha} />
                           <button class="btn btn-primary" disabled=${salvandoSenha} onClick=${() => redefinirSenha(u.id)}>
                             ${salvandoSenha ? "…" : "Salvar"}</button>
@@ -4100,8 +4215,8 @@ function App() {
         Ensino). React + Supabase (banco em tempo real). A análise assistida usa <b>regras
         explícitas por palavra-chave</b>, não modelo de aprendizado de máquina. Dados fictícios —
         nenhum caso real de estudante.
-        ${usuarioLogado.admin && html`&nbsp;·&nbsp; <a href="#" onClick=${limparTudo}>limpar todos os casos</a>`}
-        &nbsp;·&nbsp; ver também <a href="./MGBE_prototipo.html">a versão de baixa fidelidade</a>
+        ${usuarioLogado.admin && html` · <a href="#" onClick=${limparTudo}>limpar todos os casos</a>`}
+         · ver também <a href="./MGBE_prototipo.html">a versão de baixa fidelidade</a>
       </div>
     </div>
   </${SessaoContext.Provider}>`;
