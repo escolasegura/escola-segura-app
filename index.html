@@ -485,6 +485,8 @@ select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns=
   border-radius:50%;background:var(--brand-600);border:3px solid var(--paper);box-shadow:0 0 0 1px var(--line)}
 .timeline .quando{font-size:12px;color:var(--ink-400);margin-bottom:2px}
 .timeline b{font-size:14px}
+.timeline li.timeline-pendente{opacity:.45}
+.timeline li.timeline-pendente::before{background:var(--ink-300)}
 
 /* ---------- passos por perfil ---------- */
 .step-n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;
@@ -492,6 +494,71 @@ select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns=
   font-weight:800;flex-shrink:0}
 .step-bloqueado .step-body,.step-na .step-body{opacity:.55}
 .step-bloqueado .btn,.step-na .btn{pointer-events:none}
+
+/* Interface em abas dos 8 passos — usada só pelo perfil Gestor do Caso por enquanto. Estilo
+   "célula de planilha": cantos retos, sem espaço entre uma aba e outra — só uma borda divisória
+   fina entre células, com um contorno único em volta de toda a barra (igual a border-collapse de
+   tabela). Se a tela for estreita demais pras 8 caberem, rola na horizontal em vez de quebrar
+   linha. Cantos arredondados só na barra inteira (overflow:hidden recorta as células das pontas
+   no formato do contorno) — as divisórias internas entre células continuam retas. */
+.abas-passo{display:flex;flex-wrap:nowrap;margin:0 0 16px;
+  border:1px solid var(--line-strong);border-radius:var(--radius);overflow:hidden}
+.aba-passo{display:flex;flex:1 1 0;min-width:64px;flex-direction:column;align-items:center;
+  justify-content:center;gap:4px;padding:10px 4px;font:inherit;font-size:11.5px;font-weight:700;
+  color:var(--brand-700);background:var(--paper);border:none;border-left:1px solid var(--line-strong);
+  cursor:pointer;text-align:center;position:relative;transition:background .12s,color .12s}
+.aba-passo:first-child{border-left:none}
+.aba-passo:hover:not(:disabled):not(.ativa){background:var(--brand-50)}
+.aba-passo-concluido:not(.ativa){background:var(--brand-100)}
+.aba-passo.ativa{color:#fff;background:var(--brand-600)}
+.aba-passo:disabled{opacity:.5;cursor:not-allowed}
+.aba-passo-check{position:absolute;top:3px;right:3px;background:var(--ok);color:#fff;
+  border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center}
+.aba-passo-label{white-space:normal;line-height:1.2}
+
+/* Geração manual da linha de protocolo sugerida pela IA (passo 3 do Gestor do Caso) — botão com
+   cara de IA + animação de "processamento" enquanto simula a geração, pra deixar visível que
+   tem IA rodando ali (em vez da sugestão só aparecer pronta, sem nenhum sinal de processamento). */
+.btn-ia{background:linear-gradient(120deg,var(--pub-a),var(--pub-c));border-color:transparent;color:#fff}
+.btn-ia:hover{filter:brightness(1.08)}
+.btn-ia svg{transition:transform .3s ease}
+.btn-ia:hover svg{transform:scale(1.2) rotate(15deg)}
+.ia-processando-corpo{display:flex;align-items:center;gap:16px;padding:2px 0 4px}
+.ia-processando-icone{position:relative;display:flex;align-items:center;justify-content:center;
+  width:44px;height:44px;border-radius:50%;flex-shrink:0;color:#fff;
+  background:linear-gradient(135deg,var(--pub-a),var(--pub-c));
+  box-shadow:0 4px 16px -3px rgba(124,58,237,.6)}
+.ia-processando-icone svg{position:relative;z-index:1;animation:ia-brilho 1.4s ease-in-out infinite}
+.ia-processando-icone::before,.ia-processando-icone::after{content:"";position:absolute;inset:0;
+  border-radius:50%;border:2px solid var(--pub-a);animation:ia-anel 1.8s ease-out infinite}
+.ia-processando-icone::after{animation-delay:.6s;border-color:var(--pub-c)}
+@keyframes ia-anel{0%{transform:scale(1);opacity:.7}100%{transform:scale(2.1);opacity:0}}
+@keyframes ia-brilho{
+  0%,100%{transform:scale(.85) rotate(-12deg);opacity:.85}
+  50%{transform:scale(1.15) rotate(12deg);opacity:1}
+}
+.ia-processando-info{flex:1;min-width:0}
+.ia-processando-texto{font-size:13.5px;font-weight:600;color:var(--brand-700);margin-bottom:8px}
+.ia-processando-barra{position:relative;height:5px;border-radius:999px;background:var(--brand-100);
+  overflow:hidden;max-width:280px}
+.ia-processando-fill{position:absolute;top:0;left:0;height:100%;width:35%;border-radius:999px;
+  background:linear-gradient(90deg,var(--brand-500),var(--brand-700));
+  animation:ia-varredura 1.1s ease-in-out infinite}
+@keyframes ia-varredura{0%{transform:translateX(-100%)}100%{transform:translateX(385%)}}
+
+/* Insights para ações complementares — mesmo padrão do botão/animação de IA acima, mas com uma
+   cor própria (ciano/azul em vez de roxo/rosa) pra deixar claro que é uma ação INDEPENDENTE do
+   "Gerar protocolo": o protocolo é a linha aplicável ao caso, os insights são ações extras que
+   podem (ou não) ser aplicadas. */
+.btn-ia-insights{background:linear-gradient(120deg,var(--pub-b),var(--brand-700));border-color:transparent;color:#fff}
+.btn-ia-insights:hover{filter:brightness(1.08)}
+.btn-ia-insights svg{transition:transform .3s ease}
+.btn-ia-insights:hover svg{transform:scale(1.2) rotate(15deg)}
+.ia-processando-icone-insights{background:linear-gradient(135deg,var(--pub-b),var(--brand-700));
+  box-shadow:0 4px 16px -3px rgba(6,182,212,.6)}
+.ia-processando-icone-insights::before,.ia-processando-icone-insights::after{border-color:var(--pub-b)}
+.ia-processando-icone-insights::after{border-color:var(--brand-700)}
+.ia-processando-fill-insights{background:linear-gradient(90deg,var(--pub-b),var(--brand-700))}
 
 /* ---------- maturity bars ---------- */
 .maturity-row{display:flex;align-items:center;gap:14px;padding:9px 0;border-bottom:1px solid var(--line)}
@@ -867,7 +934,7 @@ function(a,b,c){if(!Vd(b))throw Error(m(200));return Wd(null,a,b,!1,c)};Q.unmoun
 <script>
 "use strict";
 const html = htm.bind(React.createElement);
-const { useState, useEffect, useCallback, useReducer, useContext } = React;
+const { useState, useEffect, useCallback, useReducer, useContext, useRef } = React;
 // Sessão do usuário logado (login simulado) — Context em vez de passar por prop em cada uma das
 // chamadas de ProfileShell espalhadas pelas 8 raias.
 const SessaoContext = React.createContext(null);
@@ -915,7 +982,8 @@ const ICONS = {
   inbox: html`<polyline points="21 12 16 12 14 15 10 15 8 12 3 12"/><path d="M5.5 5h13l2.5 7v7H3v-7z"/>`,
   search: html`<circle cx="10.5" cy="10.5" r="7"/><line x1="21" y1="21" x2="15.5" y2="15.5"/>`,
   heart: html`<path d="M12 21s-7.5-4.6-10-9.3C.5 8.2 2.4 4.5 6.1 4c2-.3 3.8.6 5.9 2.7C14.1 4.6 15.9 3.7 17.9 4c3.7.5 5.6 4.2 4.1 7.7C19.5 16.4 12 21 12 21z"/>`,
-  cpu: html`<rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="0.5"/><line x1="6" y1="2" x2="6" y2="6"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="18" y1="2" x2="18" y2="6"/><line x1="6" y1="18" x2="6" y2="22"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="18" y1="18" x2="18" y2="22"/><line x1="2" y1="6" x2="6" y2="6"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="2" y1="18" x2="6" y2="18"/><line x1="18" y1="6" x2="22" y2="6"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="18" y1="18" x2="22" y2="18"/>`
+  cpu: html`<rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="0.5"/><line x1="6" y1="2" x2="6" y2="6"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="18" y1="2" x2="18" y2="6"/><line x1="6" y1="18" x2="6" y2="22"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="18" y1="18" x2="18" y2="22"/><line x1="2" y1="6" x2="6" y2="6"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="2" y1="18" x2="6" y2="18"/><line x1="18" y1="6" x2="22" y2="6"/><line x1="18" y1="12" x2="22" y2="12"/><line x1="18" y1="18" x2="22" y2="18"/>`,
+  sparkles: html`<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/><path d="M4 17v2"/><path d="M5 18H3"/>`
 };
 
 function Icon({ name, size = 20, className = "" }) {
@@ -1077,7 +1145,7 @@ function InsightsTratamento({ a }) {
   const sugestoes = sugerirTratamento(a);
   if (!sugestoes.length) return null;
   return html`<div class="insights-tratamento">
-    <b><${Icon} name="clipboard-check" size=${14} /> Insights sugeridos para tratamento</b>
+    <b><${Icon} name="clipboard-check" size=${14} /> Insights para ações complementares</b>
     <div class="mini-steps">
       ${sugestoes.map((s, i) => html`<div class="mini-step" key=${i}>
         <span class="step-n">${i + 1}</span><span>${s}</span>
@@ -1306,6 +1374,60 @@ function statusOperacional(kase) {
   return "Em análise";
 }
 
+/* Status traduzido pro Comunicante (linguagem simples, 6 etapas) — reconstrói a árvore a partir
+   dos campos brutos do caso, NÃO a partir da string de `statusOperacional` (aquela função reusa
+   o rótulo "Em análise" pra dois estados internos diferentes, o que perderia a distinção que a
+   spec de UX pede entre "Relato enviado" e "Em análise"). Cada etapa carrega só texto seguro de
+   mostrar ao Comunicante — nunca categoria/prioridade da IA, protocolo sugerido, ou anotações
+   internas do Gestor/Equipe. */
+const ETAPAS_COMUNICANTE = [
+  { chave: "relato_enviado", label: "Relato enviado", tone: "neutro",
+    mensagem: "Recebemos seu relato com segurança.",
+    explicacao: "O sistema registrou seu relato e gerou um protocolo. A instituição já foi notificada." },
+  { chave: "em_analise", label: "Em análise", tone: "media",
+    mensagem: "Seu relato está sendo analisado pela instituição.",
+    explicacao: "A equipe responsável está revisando as informações apresentadas antes de decidir os próximos passos." },
+  { chave: "encaminhado", label: "Encaminhado para atendimento", tone: "media",
+    mensagem: "O caso foi encaminhado à equipe responsável pelo atendimento.",
+    explicacao: "A instituição já decidiu como conduzir o seu caso e encaminhou para quem vai atuar diretamente nele." },
+  { chave: "providencias_andamento", label: "Providências em andamento", tone: "media",
+    mensagem: "A instituição está adotando as providências cabíveis.",
+    explicacao: "A equipe responsável está realizando as ações consideradas necessárias para tratar a situação. Algumas informações do atendimento são protegidas e, por isso, não aparecem nesta área." },
+  { chave: "em_acompanhamento", label: "Em acompanhamento", tone: "media",
+    mensagem: "Houve intervenção e a situação continua sendo acompanhada.",
+    explicacao: "Já houve uma ação da instituição, e a situação segue sendo observada para garantir que não volte a acontecer." },
+  { chave: "encerrado", label: "Encerrado", tone: "baixa",
+    mensagem: "O tratamento institucional foi concluído.",
+    explicacao: "A instituição concluiu o tratamento deste caso. Se a situação voltar a acontecer, você pode registrar um novo relato." }
+];
+
+function statusSimplificadoComunicante(kase) {
+  if (!kase) return "relato_enviado";
+  if (kase.arquivadoEm || kase.desfecho) return "encerrado";
+  if (!kase.cienciaEm) return "relato_enviado";
+  if (!kase.validacao || !kase.encaminhamento) return "em_analise";
+  const dec = kase.encaminhamento.decisao;
+  if (dec === "tratar") {
+    const st = (kase.tratamentoDireto || {}).status || "em_analise";
+    return st === "em_acompanhamento" ? "em_acompanhamento" : "providencias_andamento";
+  }
+  if (dec === "equipe") return kase.equipeConcluidaEm ? "providencias_andamento" : "em_acompanhamento";
+  if (dec === "escalonar") return kase.decisaoInstitucional ? "providencias_andamento" : "encaminhado";
+  return "providencias_andamento"; // decisao === "encerrar"
+}
+
+// Recebe só a CHAVE do status (nunca o caso inteiro) — por design, garante que este componente
+// não tem como vazar um campo interno do caso por engano.
+function LinhaDoTempoRelato({ statusAtual }) {
+  const idxAtual = ETAPAS_COMUNICANTE.findIndex(e => e.chave === statusAtual);
+  return html`<ul class="timeline">
+    ${ETAPAS_COMUNICANTE.map((e, i) => html`<li key=${e.chave} class=${i > idxAtual ? "timeline-pendente" : ""}>
+      <b>${e.label}</b>${i < idxAtual ? " ✓" : i === idxAtual ? " ●" : ""}
+      ${i <= idxAtual && html`<div class="dica">${e.mensagem}</div>`}
+    </li>`)}
+  </ul>`;
+}
+
 function caseReducer(state, action) {
   switch (action.type) {
     case "ENVIAR_RELATO": {
@@ -1332,6 +1454,9 @@ function caseReducer(state, action) {
         anonimoSemLogin: !!action.anonimoSemLogin,
         maiorDeIdade: typeof action.maiorDeIdade === "boolean" ? action.maiorDeIdade : null,
         termosAceitosEm: action.termosAceitosEm || null,
+        // Dono do caso, só quando enviado por um Comunicante logado (nunca no canal anônimo) —
+        // é o que permite "Meus Relatos" filtrar só os relatos da própria pessoa.
+        comunicanteId: action.comunicanteId || null,
         enviadoEm: new Date().toISOString(),
         protocolo: "MGBE-" + new Date().getFullYear() + "-" + n
       };
@@ -1420,6 +1545,13 @@ function caseReducer(state, action) {
       // Fase 5, raia Gestor do Caso — "Arquivar caso e manter histórico" → Fim.
       return { ...state, arquivadoEm: new Date().toISOString() };
 
+    case "ADICIONAR_INFORMACAO_COMUNICANTE":
+      // Raia Comunicante — tela "Adicionar Nova Informação": complementa o protocolo já existente
+      // sem abrir um novo caso. Lista própria (não reaproveita infoComplementar, que é campo único
+      // de uso exclusivo do Gestor e seria sobrescrito, misturando autoria).
+      return { ...state, atualizacoesComunicante: [...(state.atualizacoesComunicante || []),
+        { texto: action.texto, recorrencia: !!action.recorrencia, continua: !!action.continua, em: new Date().toISOString() }] };
+
     default:
       return state;
   }
@@ -1433,8 +1565,15 @@ function caseReducer(state, action) {
    caso novo (com id próprio, atribuído aqui — protocolo só existe depois, gerado pela Recepção,
    então não serve como identificador desde o início) e sabe rotear toda outra action pro caso
    certo via `action.casoId`, sem tocar nos demais. */
-let proximoCasoId = 1;
-function novoCasoId() { return "c-" + (proximoCasoId++); }
+// Precisa ser único de verdade entre sessões/dispositivos diferentes — um contador reiniciando
+// em 1 a cada carregamento de página colidia com ids já existentes no banco (ex.: "c-1" gerado
+// de novo numa sessão nova), fazendo o upsert virar um UPDATE em cima de outro caso: silencioso
+// pra quem está autenticado (sobrescreve um caso alheio sem aviso) e um erro de RLS pra quem
+// envia pelo canal anônimo (anon não tem permissão de UPDATE em `casos`, só INSERT).
+function novoCasoId() {
+  if (typeof crypto !== "undefined" && crypto.randomUUID) return crypto.randomUUID();
+  return "c-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
+}
 
 function casosReducer(casos, action) {
   switch (action.type) {
@@ -1478,6 +1617,21 @@ function useFilaCaso(casos, filtroPendente, casoFoco) {
   return [pendentes, selecionado, setSelecionadoId];
 }
 
+// Avança `abaAtiva` para o próximo passo aplicável assim que `concluido` passa de false pra
+// true (borda de subida via useRef, não o valor absoluto) — depender só de `abaAtiva` faria o
+// Gestor ser "chutado" de volta pra frente toda vez que clicasse numa aba já concluída pra
+// revisar. Usado só pela interface em abas do Gestor do Caso.
+function useAvancoAutomatico(numeroAba, concluido, abaAtiva, setAbaAtiva, statusPasso) {
+  const eraConcluido = useRef(concluido);
+  useEffect(() => {
+    const acabouDeConcluir = concluido && !eraConcluido.current;
+    eraConcluido.current = concluido;
+    if (acabouDeConcluir && abaAtiva === numeroAba) {
+      setAbaAtiva(proximaAbaAplicavel(numeroAba, statusPasso));
+    }
+  }, [concluido]);
+}
+
 /* Busca por protocolo (também aceita trecho do relato — útil antes do protocolo existir, ex.:
    fila da Recepção) — reaproveitada em toda listagem/fila do sistema. Só filtra o que é
    MOSTRADO; não interfere na lógica de seleção/fila por baixo (useFilaCaso continua operando
@@ -1497,7 +1651,7 @@ function CampoBusca({ valor, onChange, placeholder }) {
 /* Tabela de fila genérica (Recepção/Profissional/Instâncias/Sistema-acompanhamento) — uma linha
    por caso pendente, clicável para trocar qual está selecionado abaixo. Busca embutida: como as
    4 raias já reaproveitam este componente, um único ajuste cobre todas. */
-function FilaTabela({ casos, selecionadoId, onSelecionar }) {
+function FilaTabela({ casos, selecionadoId, onSelecionar, labelAcao }) {
   const [busca, setBusca] = useState("");
   const filtrados = filtrarPorBusca(casos, busca);
   return html`<div class="card" style=${{ padding: 0, overflowX: "auto" }}>
@@ -1508,13 +1662,16 @@ function FilaTabela({ casos, selecionadoId, onSelecionar }) {
       <tbody>
         ${filtrados.map(c => html`<tr key=${c.id} class=${c.id === selecionadoId ? "fila-linha-ativa" : ""}
           style=${{ cursor: "pointer" }} onClick=${() => onSelecionar(c.id)}>
-          <td><b>${c.protocolo || "Aguardando protocolo"}</b></td>
+          <td><div style=${{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+            <b>${c.protocolo || "Aguardando protocolo"}</b>
+            ${c.identificacao === "anonimo" && html`<${Badge} tone="neutro">Anônimo</${Badge}>`}
+          </div></td>
           <td style=${{ maxWidth: "360px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>${esc(c.relato)}</td>
           <td><${Badge} tone=${statusOperacional(c) === "Aguardando encerramento" ? "media" : statusOperacional(c) === "Encerrado" ? "neutro" : "baixa"}>${statusOperacional(c)}</${Badge}></td>
           <td>${quando(c.enviadoEm)}</td>
           <td>${c.id === selecionadoId
             ? html`<${Badge} tone="baixa">Aberto</${Badge}>`
-            : html`<button class="btn btn-secondary" onClick=${e => { e.stopPropagation(); onSelecionar(c.id); }}>Abrir caso</button>`}</td>
+            : html`<button class="btn btn-secondary" onClick=${e => { e.stopPropagation(); onSelecionar(c.id); }}>${labelAcao ? labelAcao(c) : "Abrir caso"}</button>`}</td>
         </tr>`)}
         ${filtrados.length === 0 && html`<tr><td colspan="5" class="dica" style=${{ padding: "14px 16px" }}>Nenhum caso encontrado para "${busca}".</td></tr>`}
       </tbody>
@@ -1659,104 +1816,81 @@ function StepCard({ n, title, status, children }) {
   </div>`;
 }
 
+/* Interface em abas dos 8 passos da jornada do Gestor do Caso — usada só por TelaGestor por
+   enquanto. Os passos 5 e 6, que hoje somem quando não se aplicam ao caso, passam a usar o
+   status "na" (já existente em STEP_CFG, mas sem uso até aqui) em vez de deixar de renderizar. */
+const TITULOS_PASSO_GESTOR = [
+  { n: 1, curto: "Protocolo",        icone: "file-text",      titulo: "Registrar dados do relato e gerar protocolo (Sistema MGBE-IA)" },
+  { n: 2, curto: "Ciência",          icone: "eye",             titulo: "Tomar ciência do caso e revisar análise da IA" },
+  { n: 3, curto: "Validação",        icone: "clipboard-check", titulo: "Validar ou ajustar classificação e protocolo sugerido" },
+  { n: 4, curto: "Decisão",          icone: "send",            titulo: "Qual a decisão do Gestor do Caso?" },
+  { n: 5, curto: "Condução direta",  icone: "users",           titulo: "Condução direta pelo Gestor do Caso" },
+  { n: 6, curto: "Rede de Proteção", icone: "shield",          titulo: "Acionar Rede de Proteção / Órgãos Competentes" },
+  { n: 7, curto: "Encerramento",     icone: "x-circle",        titulo: "Encerrar caso e registrar justificativa final" },
+  { n: 8, curto: "Arquivamento",     icone: "lock",            titulo: "Arquivar caso e manter histórico" }
+];
+
+function calcularStatusPassoGestor(sel, validado, critico, pronto) {
+  const decisaoTratar = !!(sel.encaminhamento && sel.encaminhamento.decisao === "tratar");
+  const tratamentoPronto = !!(sel.tratamentoDireto && sel.tratamentoDireto.status === "pronto_encerrar");
+  return {
+    1: "concluido",
+    2: "concluido",
+    3: validado ? "concluido" : "atual",
+    4: sel.encaminhamento ? "concluido" : (validado ? "atual" : "bloqueado"),
+    5: !sel.encaminhamento ? "bloqueado" : (!decisaoTratar ? "na" : (tratamentoPronto ? "concluido" : "atual")),
+    6: !validado ? "bloqueado" : (!critico ? "na" : (sel.urgencia ? "concluido" : "atual")),
+    7: !sel.encaminhamento ? "bloqueado" : (sel.desfecho ? "concluido" : (pronto ? "atual" : "bloqueado")),
+    8: sel.desfecho ? "atual" : "bloqueado"
+  };
+}
+
+// Pula abas "na" em sequência; nunca pula "bloqueado" — o usuário precisa "ver" o bloqueio.
+function proximaAbaAplicavel(desde, statusPasso) {
+  let n = desde + 1;
+  while (n < 8 && statusPasso[n] === "na") n++;
+  return n;
+}
+
+function AbasPasso({ passos, ativa, onSelecionar }) {
+  return html`<div class="abas-passo" role="tablist">
+    ${passos.map(p => {
+      const bloqueada = p.status === "bloqueado" || p.status === "na";
+      return html`<button key=${p.n} type="button" role="tab" aria-selected=${p.n === ativa}
+        class=${"aba-passo aba-passo-" + p.status + (p.n === ativa ? " ativa" : "")}
+        disabled=${bloqueada}
+        title=${p.status === "na" ? "Não se aplica a este caso" : p.status === "bloqueado" ? "Aguardando etapa anterior" : p.titulo}
+        onClick=${() => onSelecionar(p.n)}>
+        ${p.status === "concluido" && html`<span class="aba-passo-check"><${Icon} name="check-circle" size=${10} /></span>`}
+        <${Icon} name=${p.icone} size=${17} />
+        <span class="aba-passo-label">${p.curto}</span>
+      </button>`;
+    })}
+  </div>`;
+}
+
+// Fica fora do <StepCard> (irmão, não filho) de propósito: `.step-bloqueado .btn,.step-na
+// .btn{pointer-events:none}` desabilitaria este botão justamente quando o Gestor mais quer
+// usá-lo (aba atual bloqueada/não aplicável, avançando só pra inspecionar o que vem a seguir).
+function BotaoAvancarPasso({ passoAtual, statusPasso, onAvancar }) {
+  if (passoAtual >= 8) return null;
+  const proxima = proximaAbaAplicavel(passoAtual, statusPasso);
+  if (proxima <= passoAtual) return null;
+  return html`<div class="acoes">
+    <button class="btn btn-secondary" onClick=${() => onAvancar(proxima)}>
+      Avançar para a próxima etapa <${Icon} name="arrow-right" size=${16} />
+    </button>
+    ${statusPasso[proxima] === "bloqueado" && html`<span class="dica" style=${{ alignSelf: "center" }}>
+      A próxima etapa ainda depende de uma ação anterior — você poderá vê-la, mas não concluí-la ainda.</span>`}
+  </div>`;
+}
+
 /* Barra de navegação entre as 8 raias — visível em toda tela. É a resposta
    direta ao pedido de não misturar as funções de cada ator: trocar de
    perfil é a única forma de ver as tarefas de outro ator. */
 function iniciais(nome) {
   return (nome || "").split(" ").filter(Boolean).slice(0, 2).map(p => p[0]).join("").toUpperCase();
 }
-
-/* "Como funciona"/"Papel desta raia"/"Sobre o motor" eram seções próprias na sidebar de cada
-   perfil — exigiam clicar pra ver. Viraram rodapé fixo do conteúdo (abaixo de "${children}" em
-   ProfileShell), presente em toda seção do perfil, recolhido por padrão (<details>, sem JS). */
-const RODAPE_INFO = {
-  comunicante: {
-    titulo: "Como funciona o fluxo",
-    icone: "info",
-    corpo: html`
-      <p class="card-sub">O que acontece depois que você envia um relato.</p>
-      <ol style=${{ paddingLeft: "20px", margin: "0 0 12px" }}>
-        <li style=${{ marginBottom: "8px" }}>O <b>Sistema MGBE-IA</b> gera o protocolo automaticamente e registra os dados do relato.</li>
-        <li style=${{ marginBottom: "8px" }}>A <b>IA</b> analisa o texto e sugere uma categoria e prioridade — nunca decide sozinha.</li>
-        <li style=${{ marginBottom: "8px" }}>O <b>Gestor do Caso</b> revisa a sugestão, confirma ou corrige, e decide o encaminhamento — a decisão é sempre de uma pessoa.</li>
-        <li style=${{ marginBottom: "8px" }}>Conforme a decisão, a <b>Equipe de Apoio</b> executa o protocolo ou a <b>Gestão Escolar</b> decide institucionalmente.</li>
-        <li style=${{ marginBottom: "8px" }}>Se o caso for grave, a <b>Rede de Proteção</b> (Conselho Tutelar, Saúde, Segurança, Ministério Público) pode ser acionada.</li>
-        <li>O caso é encerrado e arquivado, mantendo um histórico auditável.</li>
-      </ol>
-      <${Alert} tone="info"><b>Sigilo e proteção de dados.</b> Seus dados são tratados com
-        segurança, conforme a LGPD (Lei nº 13.709/2018), o ECA (Lei nº 8.069/1990), a Lei nº
-        13.185/2015 (Lei do Bullying) e a Lei nº 14.811/2024 (criminalização do bullying e
-        cyberbullying). O acesso às informações fica restrito às pessoas responsáveis por tratar
-        o seu caso.</${Alert}>
-      <${Acolhimento}><b>Relatar não é fácil, e tudo bem pedir ajuda.</b> Você pode registrar
-        de forma anônima se preferir — isso não muda a prioridade do seu relato. Se precisar de
-        apoio imediato, procure um adulto de confiança na escola além de usar este sistema.</${Acolhimento}>
-    `
-  },
-  gestor: {
-    titulo: "Papel desta raia",
-    icone: "info",
-    corpo: html`
-      <p>Profissional autorizado para conduzir o caso (Coordenação Pedagógica, Psicologia ou
-        Assistência Social) — é quem toma ciência do caso, valida ou ajusta a sugestão da IA,
-        decide o encaminhamento (tratar diretamente, atribuir à Equipe de Apoio, escalonar pra
-        Gestão Escolar, ou encerrar), e conduz o caso até o encerramento e arquivamento.</p>
-      <p class="dica">A sugestão da IA nunca decide sozinha — "IA sugere → Gestor do Caso decide
-        → sistema registra" é o princípio de Human-in-the-Loop que sustenta este perfil.</p>
-      <p>As raias <b>Sistema MGBE-IA</b> (dados/protocolo) e <b>IA</b> (análise/classificação/
-        recomendação) do fluxograma não correspondem a nenhum cargo humano — a pedido do
-        usuário, o conteúdo delas foi unido aqui, nos passos 1 e 3 desta tela, em vez de virar
-        perfis navegáveis próprios.</p>
-      <p>A análise de relatos usa um <b>motor de regras explícitas por palavra-chave</b>, não
-        um modelo de aprendizado de máquina treinado. Cada sugestão mostra exatamente quais
-        termos a dispararam — a explicabilidade é verificável, não uma promessa.</p>
-      <${Alert} tone="warn">Isso precisa constar no Relatório do Produto Tecnológico:
-        apresentar regras por palavra-chave como se fossem IA treinada seria um problema
-        sério na defesa do TCC.</${Alert}>
-    `
-  },
-  equipe: {
-    titulo: "Papel desta raia",
-    icone: "info",
-    corpo: html`
-      <p>Psicologia, Serviço Social, Pedagógico e outros profissionais — quando o Gestor do Caso
-        atribui um caso a esta raia, é ela quem executa as ações e providências previstas no
-        protocolo, registra ações/encaminhamentos/evidências, e acompanha a evolução do caso até
-        concluir.</p>
-    `
-  },
-  protecao: {
-    titulo: "Papel desta raia",
-    icone: "building",
-    corpo: html`
-      <p>Conselho Tutelar, Rede de Saúde, Segurança Pública, Ministério Público, entre outros —
-        apoio e medidas legais quando necessário. O fluxograma oficial não define uma tarefa
-        própria para esta raia; ela é acionada conforme a gravidade do caso, direto pelo Gestor
-        do Caso. O parecer abaixo é uma extensão além do fluxograma original: para todo caso
-        Crítico/Urgente acionado, o encerramento passa a depender dele.</p>
-    `
-  },
-  escola: {
-    titulo: "Papel desta raia",
-    icone: "info",
-    corpo: html`
-      <p>Direção / Gestão da Instituição — quando o Gestor do Caso escalona um caso pra esta
-        raia, é ela quem toma as decisões institucionais e administrativas, e acompanha/valida as
-        providências da Equipe de Apoio.</p>
-    `
-  },
-  rede: {
-    titulo: "Papel desta raia",
-    icone: "info",
-    corpo: html`
-      <p>Secretaria Municipal/Estadual de Educação — nível Estratégico: consolida indicadores e
-        dados anonimizados, monitora padrões e recorrências entre escolas, gera relatórios e
-        dashboards, e apoia políticas públicas e prevenção.</p>
-      <p class="dica">Em produção, este painel agregaria dados de várias escolas da rede; aqui,
-        no protótipo, reaproveita os dados desta escola única de demonstração.</p>
-    `
-  }
-};
 
 /* Shell de app inteiro: sidebar única (fixa, altura total, recolhível) fundindo o que antes eram
    duas navegações separadas — a barra de perfis (topo) e a sub-navegação em sidebar por seção
@@ -1846,12 +1980,6 @@ function ProfileShell({ profile, titulo, subtitulo, navigate, casos, secoes, ati
         <p class="lede">${ator ? ator.sub : subtitulo}</p>
       </div>
       ${children}
-      ${ator && RODAPE_INFO[profile] && html`
-        <details class="rodape-papel" open>
-          <summary><${Icon} name=${RODAPE_INFO[profile].icone} size=${14} /> ${RODAPE_INFO[profile].titulo}</summary>
-          <div class="rodape-papel-corpo">${RODAPE_INFO[profile].corpo}</div>
-        </details>
-      `}
     </main>
   </div>`;
 }
@@ -2102,50 +2230,57 @@ function DestaqueIAPerfil({ titulo, subtitulo, itens = [], recomendacao, aviso }
   </div>`;
 }
 
-function ResumoLista({ titulo, subtitulo, itens = [] }) {
-  return html`<div class="card">
-    <h3>${titulo}</h3>
-    ${subtitulo && html`<p class="card-sub">${subtitulo}</p>`}
-    ${itens.length
-      ? html`<ul class="timeline">${itens.map((it, i) => html`<li key=${i}>
-          <div class="quando">${it.quando || ""}</div><b>${it.titulo}</b>
-          ${it.texto && html`<div>${it.texto}</div>`}
-        </li>`)}</ul>`
-      : html`<p class="dica">Nenhum item disponível no momento.</p>`}
-  </div>`;
-}
-
 const SECOES_DEMANDANTE = [
   { grupo: "Meu acesso" },
   { id: "novo", label: "Registrar uma situação", icon: "send" },
-  { id: "meus", label: "Meus relatos", icon: "list" },
-  { id: "acompanhar", label: "Acompanhar protocolo", icon: "activity" },
-  { id: "complementar", label: "Complementar informações", icon: "edit" },
-  { grupo: "Ajuda" },
-  { id: "orientacao", label: "Orientação da IA", icon: "cpu" },
-  { id: "privacidade", label: "Privacidade e segurança", icon: "lock" }
+  { id: "meus", label: "Meus casos", icon: "list" }
 ];
 
-function statusRelato(c) {
-  if (c.arquivadoEm) return { label: "Encerrado e arquivado", tone: "baixa" };
-  if (!c.validacao) return { label: "Em análise", tone: "neutro" };
-  return { label: "Em tratamento — protocolo " + c.protocolo, tone: "media" };
-}
-
 function TelaComunicante({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, onColapsar }) {
+  const { usuarioLogado } = useContext(SessaoContext) || SESSAO_PADRAO;
   const [secao, setSecao] = useState("novo");
   const [enviando, setEnviando] = useState(false);
   const [confirmando, setConfirmando] = useState(false);
-  const [verId, setVerId] = useState(null);
+  // Acompanhar e complementar deixaram de ser páginas próprias — tudo isso agora mora dentro do
+  // modal aberto a partir de "Meus casos" (casoAbertoId != null = modal aberto).
+  const [casoAbertoId, setCasoAbertoId] = useState(null);
   const [buscaMeus, setBuscaMeus] = useState("");
-  const meusRelatos = [...casos].sort((a, b) => new Date(b.enviadoEm) - new Date(a.enviadoEm));
+  const [entendaAberto, setEntendaAberto] = useState(false);
+  const [modoComplemento, setModoComplemento] = useState(false);
+  const [textoComplemento, setTextoComplemento] = useState("");
+  const [voltouAcontecer, setVoltouAcontecer] = useState(false);
+  const [continuaAcontecendo, setContinuaAcontecendo] = useState(false);
+  const [apenasAcrescentar, setApenasAcrescentar] = useState(false);
+  const [complementoEnviado, setComplementoEnviado] = useState(false);
+
+  // "Meus casos" só mostra o que ESTE Comunicante enviou logado — relatos anônimos (canal
+  // público ou identificação "anônimo") nunca têm comunicanteId, então nunca aparecem aqui; não
+  // há como "recuperar" um relato anônimo depois, por desenho.
+  const meusRelatos = casos.filter(c => c.comunicanteId === usuarioLogado.id)
+    .sort((a, b) => new Date(b.enviadoEm) - new Date(a.enviadoEm));
   const meusRelatosFiltrados = filtrarPorBusca(meusRelatos, buscaMeus);
-  const verCaso = meusRelatos.find(c => c.id === verId) || null;
+  const casoAberto = meusRelatos.find(c => c.id === casoAbertoId) || null;
+
+  // Abrir o caso vindo de outro perfil (ex.: alguém te mandando ver seu próprio caso) — mesmo
+  // padrão de casoFoco/onFoco que as outras Telas já usam, agora abrindo direto o modal.
+  useEffect(() => {
+    if (casoFoco) { setSecao("meus"); abrirCaso(casoFoco); }
+  }, [casoFoco]);
+
+  function abrirCaso(id) {
+    setCasoAbertoId(id);
+    setEntendaAberto(false);
+    setModoComplemento(false);
+    setComplementoEnviado(false);
+  }
+  function fecharModalCaso() {
+    setCasoAbertoId(null);
+  }
 
   function enviarRelato(dados) {
     setEnviando(true);
     setTimeout(() => {
-      dispatch({ type: "ENVIAR_RELATO", ...dados });
+      dispatch({ type: "ENVIAR_RELATO", ...dados, comunicanteId: usuarioLogado.id });
       setEnviando(false);
       setConfirmando(true);
     }, 350);
@@ -2153,6 +2288,17 @@ function TelaComunicante({ casos, dispatch, navigate, casoFoco, onFoco, colapsad
   function fecharConfirmacao() {
     setConfirmando(false);
     setSecao("meus");
+    const recente = meusRelatos[0];
+    if (recente) abrirCaso(recente.id);
+  }
+
+  function enviarComplemento() {
+    if (!textoComplemento.trim()) { showAviso("Descreva o que aconteceu antes de enviar."); return; }
+    dispatch({ type: "ADICIONAR_INFORMACAO_COMUNICANTE", casoId: casoAberto.id,
+      texto: textoComplemento.trim(), recorrencia: voltouAcontecer, continua: continuaAcontecendo });
+    setTextoComplemento(""); setVoltouAcontecer(false); setContinuaAcontecendo(false); setApenasAcrescentar(false);
+    setModoComplemento(false);
+    setComplementoEnviado(true);
   }
 
   return html`<${ProfileShell} profile="comunicante" navigate=${navigate} casos=${casos}
@@ -2162,98 +2308,75 @@ function TelaComunicante({ casos, dispatch, navigate, casoFoco, onFoco, colapsad
       <${AssistenteRelato} modoAnonimo=${false} enviando=${enviando} onEnviar=${enviarRelato} />
       ${meusRelatos.length > 0 && html`<${Alert} tone="ok"><b>Você pode enviar quantos relatos
         precisar.</b> Cada situação diferente vira um caso próprio, acompanhado separadamente —
-        veja todos em "Meus relatos".</${Alert}>`}
+        veja todos em "Meus casos".</${Alert}>`}
     </div>
     `}
 
-    ${(secao === "meus" || secao === "acompanhar") && html`
+    ${secao === "meus" && html`
+      <div class="tiles">
+        <div class="tile"><div class="n">${meusRelatos.length}</div><div class="lbl">Relatos enviados</div></div>
+        <div class="tile"><div class="n">${meusRelatos.filter(c => statusSimplificadoComunicante(c) !== "encerrado").length}</div><div class="lbl">Em andamento</div></div>
+        <div class="tile"><div class="n">${meusRelatos.filter(c => statusSimplificadoComunicante(c) === "encerrado").length}</div><div class="lbl">Encerrados</div></div>
+      </div>
       ${meusRelatos.length === 0
-        ? html`<${Alert} tone="info">Você ainda não enviou nenhum relato. Use "Novo relato" para começar.</${Alert}>`
+        ? html`<${Alert} tone="info">Você ainda não enviou nenhum relato. Use "Registrar uma situação" para começar.</${Alert}>`
         : html`<div class="card" style=${{ padding: 0, overflowX: "auto" }}>
             ${meusRelatos.length > 1 && html`<div style=${{ padding: "14px 16px 0" }}>
               <${CampoBusca} valor=${buscaMeus} onChange=${setBuscaMeus} placeholder="Buscar por protocolo ou trecho do relato..." /></div>`}
             <table class="tbl">
-              <thead><tr><th>Protocolo</th><th>Enviado em</th><th>Situação</th><th></th></tr></thead>
+              <thead><tr><th>Protocolo</th><th>Relato</th><th>Status</th><th>Registrado em</th><th></th></tr></thead>
               <tbody>
-                ${meusRelatosFiltrados.map(c => html`<tr key=${c.id}>
-                  <td><b>${c.protocolo || "Aguardando protocolo"}</b></td>
-                  <td>${quando(c.enviadoEm)}</td>
-                  <td><${Badge} tone=${statusRelato(c).tone}>${statusRelato(c).label}</${Badge}></td>
-                  <td><button class="btn-icon" title="Ver detalhes" onClick=${() => setVerId(c.id)}><${Icon} name="eye" size=${17} /></button></td>
-                </tr>`)}
-                ${meusRelatosFiltrados.length === 0 && html`<tr><td colspan="4" class="dica" style=${{ padding: "14px 16px" }}>Nenhum relato encontrado para "${buscaMeus}".</td></tr>`}
+                ${meusRelatosFiltrados.map(c => {
+                  const etapa = ETAPAS_COMUNICANTE.find(e => e.chave === statusSimplificadoComunicante(c));
+                  return html`<tr key=${c.id}>
+                    <td><b>${c.protocolo || "Aguardando protocolo"}</b></td>
+                    <td style=${{ maxWidth: "320px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>${esc(c.relato)}</td>
+                    <td><${Badge} tone=${etapa.tone}>${etapa.label}</${Badge}></td>
+                    <td>${quando(c.enviadoEm)}</td>
+                    <td><button class="btn-icon" title="Ver detalhes" onClick=${() => abrirCaso(c.id)}><${Icon} name="eye" size=${17} /></button></td>
+                  </tr>`;
+                })}
+                ${meusRelatosFiltrados.length === 0 && html`<tr><td colspan="5" class="dica" style=${{ padding: "14px 16px" }}>Nenhum relato encontrado para "${buscaMeus}".</td></tr>`}
               </tbody>
             </table>
           </div>`}
-
-      ${verCaso && html`<${Modal} title=${"Relato " + (verCaso.protocolo || "(aguardando protocolo)")} onClose=${() => setVerId(null)}>
-        <div class="card">
-          <p style=${{ whiteSpace: "pre-wrap" }}>${verCaso.relato}</p>
-          <table class="tbl">
-            <tr><th>Enviado em</th><td>${quando(verCaso.enviadoEm)}</td></tr>
-            <tr><th>Identificação</th><td>${verCaso.identificacao === "anonimo" ? "Anônimo" : "Identificado"}</td></tr>
-            ${verCaso.identificacaoDados && html`
-              <tr><th>Nome</th><td>${esc(verCaso.identificacaoDados.nome)}</td></tr>
-              <tr><th>Vínculo</th><td>${esc(verCaso.identificacaoDados.vinculo)}</td></tr>
-              ${verCaso.identificacaoDados.turma && html`<tr><th>Turma/série</th><td>${esc(verCaso.identificacaoDados.turma)}</td></tr>`}
-              ${verCaso.identificacaoDados.contato && html`<tr><th>Contato</th><td>${esc(verCaso.identificacaoDados.contato)}</td></tr>`}
-            `}
-            ${verCaso.local && html`<tr><th>Onde aconteceu</th><td>${esc(verCaso.local)}</td></tr>`}
-            ${verCaso.quando && html`<tr><th>Quando aconteceu</th><td>${esc(verCaso.quando)}</td></tr>`}
-            ${verCaso.pessoaAfetada && html`<tr><th>Pessoa possivelmente afetada</th><td>${esc(verCaso.pessoaAfetada)}</td></tr>`}
-            ${verCaso.pessoasMencionadas && html`<tr><th>Pessoas mencionadas</th><td>${esc(verCaso.pessoasMencionadas)}</td></tr>`}
-            ${verCaso.evidencia && html`<tr><th>Evidência inicial</th><td>${esc(verCaso.evidencia)}</td></tr>`}
-            <tr><th>Situação</th><td><${Badge} tone=${statusRelato(verCaso).tone}>${statusRelato(verCaso).label}</${Badge}></td></tr>
-          </table>
-        </div>
-        <${Alert} tone="ok"><b>O que acontece agora.</b> O protocolo já foi gerado automaticamente.
-          A IA analisa o relato e o Gestor do Caso valida a classificação — <b>quem decide é
-          sempre uma pessoa</b>.</${Alert}>
-        <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(verCaso.id); setVerId(null); navigate("gestor"); }}>
-          Ver como o Gestor do Caso analisa este caso <${Icon} name="arrow-right" size=${16} /></button></div>
-      </${Modal}>`}
     `}
 
-    ${secao === "complementar" && html`
-      <${DestaqueIAPerfil}
-        titulo="Ajuda para complementar o relato"
-        subtitulo="A IA sugere informações que podem tornar o contexto mais claro para a equipe, sem impedir o envio."
-        itens=${[
-          { rotulo: "Recorrência", valor: "Isso já aconteceu antes?", dica: "Se souber, informe frequência ou período." },
-          { rotulo: "Contexto", valor: "Onde e quando?", dica: "Local e data aproximada ajudam a triagem." },
-          { rotulo: "Impacto", valor: "Houve medo, isolamento ou dano?", dica: "Somente se você se sentir confortável em informar." }
-        ]}
-        recomendacao="Abra um dos seus relatos e acrescente apenas o que você souber. Não é necessário responder a todas as perguntas."
-        aviso="A IA não classifica pessoas nem decide se houve bullying. Ela apenas ajuda a estruturar informações."
-      />
-      <${Alert} tone="info">Para complementar um caso específico, abra-o em <b>Meus relatos</b>.
-        Neste protótipo a complementação permanece vinculada ao protocolo já criado.</${Alert}>
-    `}
-
-    ${secao === "orientacao" && html`
-      <${DestaqueIAPerfil}
-        titulo="Orientação acolhedora antes do relato"
-        subtitulo="Você não precisa conhecer termos técnicos ou jurídicos para usar a plataforma."
-        itens=${[
-          { rotulo: "Conte com suas palavras", valor: "O que aconteceu", dica: "Descreva o fato do jeito que você consegue." },
-          { rotulo: "Se souber", valor: "Quando e onde", dica: "Esses dados ajudam a equipe a contextualizar." },
-          { rotulo: "Se ocorreu outras vezes", valor: "Informe a repetição", dica: "Pode ajudar a verificar possível recorrência." }
-        ]}
-        recomendacao="Envie o relato mesmo que alguma informação esteja faltando. A equipe responsável fará a análise humana."
-        aviso="A IA não acusa, condena ou determina a natureza jurídica da ocorrência."
-      />
-    `}
-
-    ${secao === "privacidade" && html`
-      <div class="card">
-        <h3><${Icon} name="lock" size=${18} /> Privacidade e segurança</h3>
-        <p class="card-sub">O sistema aplica minimização de dados e acesso por perfil.</p>
-        <${Alert} tone="info">Dados identificados ficam disponíveis apenas para quem precisa atuar
-          no caso. Indicadores gerenciais devem usar informação agregada sempre que possível.</${Alert}>
-        <p class="dica">O protótipo segue os princípios de proteção definidos no projeto; regras
-          finais de retenção e acesso dependem da implementação institucional.</p>
-      </div>
-    `}
+    ${casoAberto && html`<${Modal} title=${"Caso " + (casoAberto.protocolo || "(aguardando protocolo)")} onClose=${fecharModalCaso}>
+      ${(() => {
+        const etapa = ETAPAS_COMUNICANTE.find(e => e.chave === statusSimplificadoComunicante(casoAberto));
+        return !modoComplemento ? html`
+          <p class="dica">Registrado em ${quando(casoAberto.enviadoEm)}</p>
+          <${Alert} tone=${etapa.chave === "encerrado" ? "ok" : "info"}>
+            <b>Status atual: ${etapa.label}.</b> ${etapa.mensagem}</${Alert}>
+          <${LinhaDoTempoRelato} statusAtual=${etapa.chave} />
+          <button class="btn btn-ghost" style=${{ padding: "6px 0" }} onClick=${() => setEntendaAberto(!entendaAberto)}>
+            ${entendaAberto ? "Fechar explicação" : "Entenda o que acontece nesta etapa"}</button>
+          ${entendaAberto && html`<p class="dica">${etapa.explicacao}</p>`}
+          ${complementoEnviado && html`<${Alert} tone="ok"><b>Informação recebida.</b> Sua
+            atualização foi adicionada a este protocolo e será considerada na análise do caso.</${Alert}>`}
+          <div class="acoes"><button class="btn btn-secondary" onClick=${() => setModoComplemento(true)}>
+            <${Icon} name="edit" size=${16} />Adicionar nova informação</button></div>
+          <${Acolhimento} icon="cpu"><b>Apoio inteligente.</b> A inteligência artificial auxilia a
+            equipe responsável na análise das informações, identificação de situações semelhantes e
+            organização das informações do caso. As decisões e providências são sempre validadas
+            pelos profissionais responsáveis.</${Acolhimento}>
+        ` : html`
+          <p class="card-sub">O que aconteceu desde o último registro?</p>
+          <div class="field"><textarea style=${{ minHeight: "110px" }} placeholder="Conte o que aconteceu..."
+            value=${textoComplemento} onChange=${e => setTextoComplemento(e.target.value)}></textarea></div>
+          <ul class="checklist">
+            <li><label><input type="checkbox" checked=${voltouAcontecer} onChange=${e => setVoltouAcontecer(e.target.checked)} /> A situação voltou a acontecer</label></li>
+            <li><label><input type="checkbox" checked=${continuaAcontecendo} onChange=${e => setContinuaAcontecendo(e.target.checked)} /> A situação continua acontecendo</label></li>
+            <li><label><input type="checkbox" checked=${apenasAcrescentar} onChange=${e => setApenasAcrescentar(e.target.checked)} /> Quero apenas acrescentar informação</label></li>
+          </ul>
+          <div class="acoes">
+            <button class="btn btn-ghost" onClick=${() => setModoComplemento(false)}>← Voltar</button>
+            <button class="btn btn-primary" onClick=${enviarComplemento}>Enviar atualização</button>
+          </div>
+        `;
+      })()}
+    </${Modal}>`}
 
     ${confirmando && html`<${Modal} title="Recebemos o seu relato" onClose=${fecharConfirmacao}>
       <${Acolhimento}><b>Obrigado por confiar isso a nós.</b> Seu relato foi registrado com
@@ -2284,31 +2407,29 @@ function TelaComunicante({ casos, dispatch, navigate, casoFoco, onFoco, colapsad
 const SECOES_GESTOR = [
   { grupo: "Gestão dos casos" },
   { id: "visao", label: "Visão geral", icon: "bar-chart" },
-  { id: "analise", label: "Análise e encaminhamento", icon: "shield" },
-  { id: "planos", label: "Planos de ação", icon: "clipboard-check" },
-  { id: "acompanhamentos", label: "Acompanhamentos", icon: "activity" },
   { id: "encerrados", label: "Casos encerrados", icon: "check-circle" },
   { grupo: "Inteligência" },
-  { id: "alertas", label: "Alertas e recorrências", icon: "alert-triangle" },
-  { id: "indicadores", label: "Indicadores", icon: "layers" }
+  { id: "alertas", label: "Alertas e recorrências", icon: "alert-triangle" }
 ];
 
 function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFoco, colapsada, onColapsar }) {
+  // "Análise e encaminhamento" deixou de ser um item de menu separado — a fila de casos e o
+  // detalhe do caso agora vivem dentro do próprio "Visão geral" (fundidos a pedido do usuário),
+  // que também é a seção de entrada.
   const [secao, setSecao] = useState("visao");
   function filtroGestor(c) {
     if (c.arquivadoEm) return false;
-    if (secao === "analise") return !c.desfecho && (!c.validacao || !c.encaminhamento);
-    if (secao === "planos") return !c.desfecho && !!c.encaminhamento &&
-      statusOperacional(c) !== "Em acompanhamento" && statusOperacional(c) !== "Aguardando encerramento";
-    if (secao === "acompanhamentos") return !c.desfecho && statusOperacional(c) === "Em acompanhamento";
+    // Um caso já validado/encaminhado pelo Gestor não some desta fila: ele continua aqui para
+    // acompanhamento (botão "Acompanhar"), só sai quando é encerrado (desfecho) ou arquivado.
+    if (secao === "visao") return !c.desfecho;
     if (secao === "encerrados") return !!c.desfecho;
     return !c.arquivadoEm;
   }
   const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroGestor, casoFoco);
   // Navegação "Ver como o Gestor do Caso conduz/encerra este caso" (vinda de outras raias) abre
-  // o caso via casoFoco, mas o conteúdo do caso só é renderizado dentro da seção "Análise e
-  // encaminhamento" — sem isso, o caso abriria "por baixo" da Visão geral, invisível.
-  useEffect(() => { if (casoFoco) setSecao("analise"); }, [casoFoco]);
+  // o caso via casoFoco — garante que a seção certa (Visão geral, onde mora o detalhe do caso)
+  // esteja ativa, senão o caso abriria "por baixo" de outra seção, invisível.
+  useEffect(() => { if (casoFoco) setSecao("visao"); }, [casoFoco]);
   // "Tomar ciência do caso" não é uma ação manual separada na prática — no momento em que o
   // Gestor do Caso abre/seleciona o caso, ele já está ciente dele. Em vez de um botão, a ciência
   // é registrada automaticamente assim que o caso selecionado ainda não tem cienciaEm.
@@ -2337,6 +2458,26 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
   // mas o botão fica indisponível desde o primeiro clique, não só depois do re-render).
   const [encerrando, setEncerrando] = useState(false);
   const [arquivando, setArquivando] = useState(false);
+  // Aba ativa da interface em passos (1 a 8) — sempre reaberta na aba 1 (ver bloco de reset
+  // abaixo e o comentário perto de AbasPasso sobre por que não "pousar" na etapa pendente).
+  const [abaAtiva, setAbaAtiva] = useState(1);
+  // Linha de protocolo sugerida pela IA (passo 3): geração manual, com uma simulação de
+  // processamento (fases + barra) pra deixar visível que existe um passo de IA rodando, em vez
+  // de a sugestão simplesmente já aparecer pronta. "idle" = ainda não gerou; "gerando" = animação
+  // em curso; "pronto" = mostra o resultado (já calculado por analisar(), só fica escondido até
+  // aqui). Caso já validado abre direto em "pronto" — não faz sentido pedir pra gerar de novo algo
+  // que já foi decidido.
+  const [protocoloIA, setProtocoloIA] = useState("pronto");
+  const [faseIA, setFaseIA] = useState(0);
+  // Mesmo padrão do protocolo, mas independente: o Gestor pode gerar um sem o outro. O protocolo
+  // é a linha de ação aplicável ao caso; os insights são ações extras que PODEM ser aplicadas,
+  // por isso viram botões (e cores) separados em vez de um "gerar tudo" só.
+  const [insightsIA, setInsightsIA] = useState("pronto");
+  const [faseInsights, setFaseInsights] = useState(0);
+  // "Casos encerrados" mistura casos reais arquivados com os SEED_ARQUIVADOS estáticos de
+  // demonstração — nenhum dos dois garante um `id` estável (os seeds não têm), por isso o modal
+  // de consulta é indexado pelo protocolo, que é único e sempre existe nos dois formatos.
+  const [verEncerradoProtocolo, setVerEncerradoProtocolo] = useState(null);
   // Reseta os campos do formulário de validação quando a seleção muda de caso.
   const [ultimoSelId, setUltimoSelId] = useState(null);
   if (sel && sel.id !== ultimoSelId) {
@@ -2353,9 +2494,36 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
     setRegistroDireto("");
     setEncerrando(false);
     setArquivando(false);
+    setAbaAtiva(1);
+    setProtocoloIA(sel.validacao ? "pronto" : "idle");
+    setFaseIA(0);
+    setInsightsIA(sel.validacao ? "pronto" : "idle");
+    setFaseInsights(0);
   }
   const validado = !!(sel && sel.validacao);
   const critico = sel ? isCritico(sel) : false;
+
+  const FASES_IA = ["Cruzando os achados do relato com o protocolo institucional…",
+    "Selecionando as medidas aplicáveis à categoria sugerida…",
+    "Montando a linha de ação recomendada…"];
+  function gerarProtocoloIA() {
+    setProtocoloIA("gerando");
+    setFaseIA(0);
+    let i = 0;
+    const intervalo = setInterval(() => { i++; setFaseIA(i % FASES_IA.length); }, 650);
+    setTimeout(() => { clearInterval(intervalo); setProtocoloIA("pronto"); }, 2100);
+  }
+
+  const FASES_INSIGHTS = ["Analisando o perfil da situação relatada…",
+    "Cruzando com medidas pedagógicas, psicológicas e disciplinares…",
+    "Selecionando os insights aplicáveis a este caso…"];
+  function gerarInsightsIA() {
+    setInsightsIA("gerando");
+    setFaseInsights(0);
+    let i = 0;
+    const intervalo = setInterval(() => { i++; setFaseInsights(i % FASES_INSIGHTS.length); }, 650);
+    setTimeout(() => { clearInterval(intervalo); setInsightsIA("pronto"); }, 2100);
+  }
 
   function salvarInfo() {
     dispatch({ type: "SALVAR_INFO_COMPLEMENTAR", casoId: sel.id, texto: info.trim() });
@@ -2396,44 +2564,52 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
 
   const ENCAMINHAMENTO_LABEL = { tratar: "Tratar diretamente", equipe: "Atribuir à Equipe de Apoio", escalonar: "Escalonar para Gestão Escolar", encerrar: "Encerrar com justificativa" };
   const pronto = sel ? prontoParaEncerrar(sel) : false;
+  const statusPasso = sel ? calcularStatusPassoGestor(sel, validado, critico, pronto) : {};
+  useAvancoAutomatico(3, validado, abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(4, !!(sel && sel.encaminhamento), abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(5, !!(sel && sel.tratamentoDireto && sel.tratamentoDireto.status === "pronto_encerrar"), abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(6, !!(sel && sel.urgencia), abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(7, !!(sel && sel.desfecho), abaAtiva, setAbaAtiva, statusPasso);
 
   return html`<${ProfileShell} profile="gestor" navigate=${navigate} casos=${casos}
     secoes=${SECOES_GESTOR} ativa=${secao} onTrocar=${s => { selecionar(null); setSecao(s); }} colapsada=${colapsada} onColapsar=${onColapsar}>
 
-    ${secao === "visao" && html`
-      <div class="tiles">
-        <div class="tile"><div class="n">${pendentes.length}</div><div class="lbl">Casos sob minha gestão</div></div>
-        <div class="tile"><div class="n">${pendentes.filter(c => !c.validacao).length}</div><div class="lbl">Aguardando validação</div></div>
-        <div class="tile"><div class="n">${pendentes.filter(c => isCritico(c)).length}</div><div class="lbl">Casos críticos</div></div>
-        <div class="tile"><div class="n">${pendentes.filter(c => c.encaminhamento && !prontoParaEncerrar(c)).length}</div><div class="lbl">Em acompanhamento</div></div>
-      </div>
-      <${DestaqueIAPerfil}
-        titulo="Resumo inteligente da fila"
-        subtitulo="A IA organiza sinais e pendências para apoiar a priorização do Gestor do Caso."
-        itens=${[
-          { rotulo: "Validação pendente", valor: pendentes.filter(c => !c.validacao).length + " caso(s)", dica: "Recomendações aguardando decisão humana." },
-          { rotulo: "Possível recorrência", valor: pendentes.filter(c => analisar(c.relato).recorrencia.length > 0).length + " alerta(s)", dica: "Sinal derivado dos relatos atuais." },
-          { rotulo: "Casos críticos", valor: pendentes.filter(c => isCritico(c)).length + " caso(s)", dica: "Podem exigir Rede de Proteção." }
-        ]}
-        recomendacao="Comece pelos casos sem validação humana e pelos casos críticos. Depois revise acompanhamentos que estejam próximos do prazo."
-        aviso="Esta priorização é assistiva. A responsabilidade pelo encaminhamento continua sendo do Gestor do Caso."
-      />
-      <div class="acoes"><button class="btn btn-primary" onClick=${() => setSecao("analise")}>
-        Abrir análise e encaminhamento <${Icon} name="arrow-right" size=${16} /></button></div>
-    `}
-
-    ${secao === "analise" && (!sel
-      ? html`<div class="actor-head"><h1>Análise e encaminhamento</h1>
-          <p class="lede">Somente casos que ainda precisam de validação e/ou encaminhamento.</p></div>
+    ${secao === "visao" && (!sel
+      ? html`
+          <div class="tiles">
+            <div class="tile"><div class="n">${pendentes.length}</div><div class="lbl">Casos sob minha gestão</div></div>
+            <div class="tile"><div class="n">${pendentes.filter(c => !c.validacao).length}</div><div class="lbl">Aguardando validação</div></div>
+            <div class="tile"><div class="n">${pendentes.filter(c => isCritico(c)).length}</div><div class="lbl">Casos críticos</div></div>
+            <div class="tile"><div class="n">${pendentes.filter(c => c.encaminhamento && !prontoParaEncerrar(c)).length}</div><div class="lbl">Em acompanhamento</div></div>
+          </div>
+          <${DestaqueIAPerfil}
+            titulo="Resumo inteligente da fila"
+            subtitulo="A IA organiza sinais e pendências para apoiar a priorização do Gestor do Caso."
+            itens=${[
+              { rotulo: "Validação pendente", valor: pendentes.filter(c => !c.validacao).length + " caso(s)", dica: "Recomendações aguardando decisão humana." },
+              { rotulo: "Possível recorrência", valor: pendentes.filter(c => analisar(c.relato).recorrencia.length > 0).length + " alerta(s)", dica: "Sinal derivado dos relatos atuais." },
+              { rotulo: "Casos críticos", valor: pendentes.filter(c => isCritico(c)).length + " caso(s)", dica: "Podem exigir Rede de Proteção." }
+            ]}
+            recomendacao="Comece pelos casos sem validação humana e pelos casos críticos. Depois revise acompanhamentos que estejam próximos do prazo."
+            aviso="Esta priorização é assistiva. A responsabilidade pelo encaminhamento continua sendo do Gestor do Caso."
+          />
+          <div class="actor-head"><h1>Análise e encaminhamento</h1>
+          <p class="lede">Casos sob sua análise e decisão. Um caso já validado e encaminhado
+            continua aqui para acompanhamento, mesmo sem precisar de nova ação sua.</p></div>
           ${pendentes.length
-            ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar} />`
+            ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar}
+                labelAcao=${c => (c.validacao && c.encaminhamento) ? "Acompanhar" : "Abrir caso"} />`
             : html`<${Alert} tone="info">Nenhum caso neste status no momento.</${Alert}>`}`
       : html`
     <div class="acoes" style=${{ marginTop: 0, marginBottom: "12px" }}>
       <button class="btn btn-ghost" onClick=${() => selecionar(null)}>← Voltar para a fila</button>
     </div>
 
-    <${StepCard} n=${1} title="Registrar dados do relato e gerar protocolo (Sistema MGBE-IA)" status="concluido">
+    <${AbasPasso} passos=${TITULOS_PASSO_GESTOR.map(t => ({ ...t, status: statusPasso[t.n] }))}
+      ativa=${abaAtiva} onSelecionar=${setAbaAtiva} />
+
+    ${abaAtiva === 1 && html`
+    <${StepCard} n=${1} title="Registrar dados do relato e gerar protocolo (Sistema MGBE-IA)" status=${statusPasso[1]}>
       <p class="card-sub">Reúne as 4 tarefas automáticas da raia Sistema MGBE-IA do fluxograma —
         validar campos mínimos, gerar protocolo, registrar dados do relato e notificar o Gestor
         do Caso —, todas concluídas no mesmo instante do envio.</p>
@@ -2447,19 +2623,37 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
         ${sel.evidencia && html`<tr><th>Evidência informada</th><td>${esc(sel.evidencia)}</td></tr>`}
       </table>
     </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${1} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    `}
 
-    <${StepCard} n=${2} title="Tomar ciência do caso e revisar análise da IA" status="concluido">
-      <p class="dica">Abrir o caso já registra a ciência do Gestor — não é uma ação separada.
-        ${sel.cienciaEm && ("Ciência registrada em " + quando(sel.cienciaEm) + ".")}</p>
+    ${abaAtiva === 2 && html`
+    <${StepCard} n=${2} title="Tomar ciência do caso e revisar análise da IA" status=${statusPasso[2]}>
+      <p class="dica">${sel.cienciaEm && ("Ciência registrada em " + quando(sel.cienciaEm) + ".")}</p>
       <p style=${{ whiteSpace: "pre-wrap" }}>${sel.relato}</p>
       <div class="field"><label>Informações complementares (opcional)</label>
         <textarea style=${{ minHeight: "70px" }} placeholder="Ex.: histórico do estudante, contexto adicional relatado por professores..."
           value=${info} onChange=${e => setInfo(e.target.value)}></textarea></div>
       <div class="acoes"><button class="btn btn-secondary" onClick=${salvarInfo}>Salvar informações complementares</button></div>
       ${sel.infoComplementar && html`<p class="dica">Salvo: "${esc(sel.infoComplementar) || "(sem observações adicionais)"}"</p>`}
+      ${(sel.atualizacoesComunicante || []).length > 0 && html`
+        <${Alert} tone="info"><b>O Comunicante enviou ${sel.atualizacoesComunicante.length}
+          atualização(ões) neste protocolo.</b></${Alert}>
+        <ul class="timeline">
+          ${sel.atualizacoesComunicante.map((u, i) => html`<li key=${i}>
+            <div class="quando">${quando(u.em)}</div><b>Nova informação do Comunicante</b>
+            <div style=${{ whiteSpace: "pre-wrap" }}>${esc(u.texto)}</div>
+            ${(u.recorrencia || u.continua) && html`<div class="dica">${[
+              u.recorrencia && "Situação voltou a acontecer", u.continua && "Situação continua acontecendo"
+            ].filter(Boolean).join(" · ")}</div>`}
+          </li>`)}
+        </ul>
+      `}
     </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${2} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    `}
 
-    <${StepCard} n=${3} title="Validar ou ajustar classificação e protocolo sugerido" status=${validado ? "concluido" : "atual"}>
+    ${abaAtiva === 3 && html`
+    <${StepCard} n=${3} title="Validar ou ajustar classificação e protocolo sugerido" status=${statusPasso[3]}>
       <div class="ia-protagonista">
         <div class="ia-protagonista-head"><div><div class="ia-protagonista-titulo"><span class="ia-protagonista-icone"><${Icon} name="cpu" size=${17} /></span>Análise inteligente do caso</div></div><span class="badge badge-neutro">Resultado da IA</span></div>
         <p class="card-sub" style=${{ margin: "0 0 10px" }}>Reúne as 4 tarefas da raia IA do
@@ -2515,19 +2709,71 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
           </div>
         `}
 
-        <${InsightsTratamento} a=${a} />
-        <div class="recomendacao-principal">
-          <h4><${Icon} name="clipboard-check" size=${15} /> Linha de protocolo sugerida pela IA</h4>
-          <b>${a.achados.length ? "Aplicar protocolo correspondente à categoria sugerida e validar medidas" : "Coleta complementar e avaliação inicial"}</b>
-          <div class="mini-steps">
-            ${(!a.achados.length
-              ? ["Acolher e preservar o relato", "Obter informações complementares", "Verificar possível recorrência", "Reavaliar classificação e prioridade"]
-              : ["Confirmar o contexto e os envolvidos", "Selecionar medidas previstas no protocolo institucional", "Definir responsável e prazo", "Monitorar evolução e registrar evidências"]
-            ).map((s, i) => html`<div class="mini-step" key=${i}><span class="step-n">${i + 1}</span><span>${s}</span></div>`)}
+        <div class="grid-2">
+          <div>
+            ${protocoloIA === "idle" ? html`
+              <div class="recomendacao-principal recomendacao-ia-idle">
+                <h4><${Icon} name="clipboard-check" size=${15} /> Linha de protocolo sugerida pela IA</h4>
+                <p class="card-sub" style=${{ margin: "0 0 12px" }}>A linha de ação aplicável a
+                  este caso, cruzando os achados do relato com o protocolo institucional. Isso não
+                  é automático — só roda quando o Gestor pedir.</p>
+                <div class="acoes" style=${{ marginTop: 0 }}>
+                  <button class="btn btn-ia" onClick=${gerarProtocoloIA}>
+                    <${Icon} name="sparkles" size=${16} />Gerar protocolo com IA</button>
+                </div>
+              </div>
+            ` : protocoloIA === "gerando" ? html`
+              <div class="recomendacao-principal ia-processando">
+                <h4><${Icon} name="clipboard-check" size=${15} /> Linha de protocolo sugerida pela IA</h4>
+                <div class="ia-processando-corpo">
+                  <span class="ia-processando-icone"><${Icon} name="sparkles" size=${20} /></span>
+                  <div class="ia-processando-info">
+                    <div class="ia-processando-texto">${FASES_IA[faseIA]}</div>
+                    <div class="ia-processando-barra"><div class="ia-processando-fill"></div></div>
+                  </div>
+                </div>
+              </div>
+            ` : html`
+              <div class="recomendacao-principal">
+                <h4><${Icon} name="clipboard-check" size=${15} /> Linha de protocolo sugerida pela IA</h4>
+                <b>${a.achados.length ? "Aplicar protocolo correspondente à categoria sugerida e validar medidas" : "Coleta complementar e avaliação inicial"}</b>
+                <div class="mini-steps">
+                  ${(!a.achados.length
+                    ? ["Acolher e preservar o relato", "Obter informações complementares", "Verificar possível recorrência", "Reavaliar classificação e prioridade"]
+                    : ["Confirmar o contexto e os envolvidos", "Selecionar medidas previstas no protocolo institucional", "Definir responsável e prazo", "Monitorar evolução e registrar evidências"]
+                  ).map((s, i) => html`<div class="mini-step" key=${i}><span class="step-n">${i + 1}</span><span>${s}</span></div>`)}
+                </div>
+                <p class="dica">No protótipo, esta é uma <b>linha de ação recomendada</b> com base
+                  nas regras disponíveis. Na implantação, o catálogo de protocolos deve ser
+                  institucional, versionado e vinculado às bases normativas aprovadas.</p>
+              </div>
+            `}
           </div>
-          <p class="dica">No protótipo, esta é uma <b>linha de ação recomendada</b> com base nas
-            regras disponíveis. Na implantação, o catálogo de protocolos deve ser institucional,
-            versionado e vinculado às bases normativas aprovadas.</p>
+          <div>
+            ${insightsIA === "idle" ? html`
+              <div class="recomendacao-principal recomendacao-ia-idle">
+                <h4><${Icon} name="clipboard-check" size=${15} /> Insights para ações complementares</h4>
+                <p class="card-sub" style=${{ margin: "0 0 12px" }}>Ações extras que podem ser
+                  aplicadas ao caso (pedagógicas, psicológicas, disciplinares) — não é o protocolo
+                  em si, são complementos que o Gestor avalia se cabem.</p>
+                <div class="acoes" style=${{ marginTop: 0 }}>
+                  <button class="btn btn-ia-insights" onClick=${gerarInsightsIA}>
+                    <${Icon} name="sparkles" size=${16} />Gerar insights com IA</button>
+                </div>
+              </div>
+            ` : insightsIA === "gerando" ? html`
+              <div class="recomendacao-principal ia-processando">
+                <h4><${Icon} name="clipboard-check" size=${15} /> Insights para ações complementares</h4>
+                <div class="ia-processando-corpo">
+                  <span class="ia-processando-icone ia-processando-icone-insights"><${Icon} name="sparkles" size=${20} /></span>
+                  <div class="ia-processando-info">
+                    <div class="ia-processando-texto">${FASES_INSIGHTS[faseInsights]}</div>
+                    <div class="ia-processando-barra"><div class="ia-processando-fill ia-processando-fill-insights"></div></div>
+                  </div>
+                </div>
+              </div>
+            ` : html`<${InsightsTratamento} a=${a} />`}
+          </div>
         </div>
       </div>
       ${!validado ? html`
@@ -2559,8 +2805,11 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
         </table>
       `}
     </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${3} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    `}
 
-    <${StepCard} n=${4} title="Qual a decisão do Gestor do Caso?" status=${sel.encaminhamento ? "concluido" : validado ? "atual" : "bloqueado"}>
+    ${abaAtiva === 4 && html`
+    <${StepCard} n=${4} title="Qual a decisão do Gestor do Caso?" status=${statusPasso[4]}>
       ${!validado
         ? html`<p class="dica">Depende da validação da classificação (passo 3).</p>`
         : sel.encaminhamento
@@ -2572,86 +2821,98 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
                 <button class="btn btn-secondary" onClick=${() => encaminhar("escalonar")}>Escalonar para Gestão Escolar</button>
                 <button class="btn btn-secondary" onClick=${() => encaminhar("encerrar")}>Encerrar com justificativa</button>
               </div>`}
+      ${sel.encaminhamento && sel.encaminhamento.decisao === "equipe" && !sel.equipeConcluidaEm && html`
+        <${Alert} tone="info">Aguardando a Equipe de Apoio concluir o acompanhamento deste caso.</${Alert}>
+        <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("equipe"); }}>
+          Ver Equipe de Apoio <${Icon} name="arrow-right" size=${16} /></button></div>`}
+      ${sel.encaminhamento && sel.encaminhamento.decisao === "escalonar" && !sel.decisaoInstitucional && html`
+        <${Alert} tone="info">Aguardando a decisão institucional da Gestão Escolar.</${Alert}>
+        <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("escola"); }}>
+          Ver Gestão Escolar <${Icon} name="arrow-right" size=${16} /></button></div>`}
     </${StepCard}>
-
-    ${sel.encaminhamento && sel.encaminhamento.decisao === "tratar" && html`
-      <${StepCard} n=${5} title="Condução direta pelo Gestor do Caso"
-        status=${sel.tratamentoDireto && sel.tratamentoDireto.status === "pronto_encerrar" ? "concluido" : "atual"}>
-        <${Alert} tone="info"><b>Tratar diretamente não encerra o caso.</b> O caso continua aberto
-          nesta tela para que você defina o próximo status. Depois de salvar, ele será listado
-          automaticamente no menu correspondente: Em análise, Aguardando complementação,
-          Acompanhamentos ou Aguardando encerramento.</${Alert}>
-        <div class="field"><label>Status do caso</label>
-          <select value=${statusDireto} onChange=${e => setStatusDireto(e.target.value)}>
-            <option value="em_analise">Em análise</option>
-            <option value="aguardando_complementacao">Aguardando informações complementares</option>
-            <option value="em_acompanhamento">Em acompanhamento</option>
-            <option value="pronto_encerrar">Pronto para encerramento</option>
-          </select>
-          <p class="dica">Ao salvar, o caso passa a aparecer automaticamente no menu correspondente ao status.</p>
-        </div>
-        ${statusDireto === "em_acompanhamento" && html`
-          <div class="grid-2">
-            <div class="field"><label>Período de acompanhamento</label>
-              <select value=${periodoDireto} onChange=${e => setPeriodoDireto(e.target.value)}>
-                <option value="7">7 dias</option><option value="15">15 dias</option>
-                <option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option>
-              </select></div>
-            <div class="field"><label>Próxima revisão (opcional)</label>
-              <input type="date" value=${proximaRevisaoDireto} onChange=${e => setProximaRevisaoDireto(e.target.value)} /></div>
-          </div>`}
-        <div class="field"><label>Observação / próxima ação</label>
-          <textarea style=${{ minHeight: "76px" }} value=${obsDireto}
-            onChange=${e => setObsDireto(e.target.value)}
-            placeholder="Ex.: realizar nova escuta, aguardar retorno da família, acompanhar a turma..."></textarea></div>
-        <div class="acoes"><button class="btn btn-primary" onClick=${salvarTratamentoDireto}>
-          <${Icon} name="check-circle" size=${16} />Salvar status do caso</button></div>
-
-        ${sel.tratamentoDireto && sel.tratamentoDireto.status === "em_acompanhamento" && html`
-          <div class="field" style=${{ marginTop: "16px" }}><label>Registrar evolução do acompanhamento</label>
-            <textarea style=${{ minHeight: "72px" }} value=${registroDireto}
-              onChange=${e => setRegistroDireto(e.target.value)}
-              placeholder="Ex.: nova escuta realizada, sem nova ocorrência relatada..."></textarea></div>
-          <div class="acoes"><button class="btn btn-secondary" onClick=${registrarAcompanhamentoDireto}>
-            Registrar acompanhamento</button></div>
-          ${(sel.acompanhamentosGestor || []).length > 0 && html`<ul class="timeline" style=${{ marginTop: "14px" }}>
-            ${(sel.acompanhamentosGestor || []).map((r,i) => html`<li key=${i}>
-              <div class="quando">${quando(r.em)}</div><b>Acompanhamento registrado</b><div>${esc(r.texto)}</div>
-            </li>`)}
-          </ul>`}
-        `}
-      </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${4} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
     `}
 
-    ${validado && critico && html`<${StepCard} n=${6} title="Acionar Rede de Proteção / Órgãos Competentes"
-      status=${sel.urgencia ? "concluido" : "atual"}>
-      ${sel.urgencia
-        ? html`<p class="dica">Rede de Proteção acionada em ${quando(sel.urgencia.em)}.</p>
-            <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("protecao"); }}>
-              Ver Rede de Proteção <${Icon} name="arrow-right" size=${16} /></button></div>`
-        : html`<${Alert} tone="danger"><b>Caso crítico.</b> Acione a Rede de Proteção / Órgãos Competentes e as medidas de proteção imediatamente. Isso é independente da decisão de encaminhamento acima.</${Alert}>
-            <div class="acoes"><button class="btn btn-danger" onClick=${() => dispatch({ type: "ACIONAR_URGENCIA", casoId: sel.id })}>
-              <${Icon} name="alert-triangle" size=${16} />Acionar Rede de Proteção</button></div>`}
-    </${StepCard}>`}
+    ${abaAtiva === 5 && html`
+    <${StepCard} n=${5} title="Condução direta pelo Gestor do Caso" status=${statusPasso[5]}>
+      ${!sel.encaminhamento
+        ? html`<p class="dica">Depende da decisão de encaminhamento (passo 4).</p>`
+        : sel.encaminhamento.decisao !== "tratar"
+          ? html`<p class="dica">Não se aplica: a decisão registrada para este caso foi
+              "${ENCAMINHAMENTO_LABEL[sel.encaminhamento.decisao]}", não "Tratar diretamente".</p>`
+          : html`<${Alert} tone="info"><b>Tratar diretamente não encerra o caso.</b> O caso continua aberto
+              nesta tela para que você defina o próximo status. Depois de salvar, ele será listado
+              automaticamente no menu correspondente: Em análise, Aguardando complementação,
+              Acompanhamentos ou Aguardando encerramento.</${Alert}>
+              <div class="field"><label>Status do caso</label>
+                <select value=${statusDireto} onChange=${e => setStatusDireto(e.target.value)}>
+                  <option value="em_analise">Em análise</option>
+                  <option value="aguardando_complementacao">Aguardando informações complementares</option>
+                  <option value="em_acompanhamento">Em acompanhamento</option>
+                  <option value="pronto_encerrar">Pronto para encerramento</option>
+                </select>
+                <p class="dica">Ao salvar, o caso passa a aparecer automaticamente no menu correspondente ao status.</p>
+              </div>
+              ${statusDireto === "em_acompanhamento" && html`
+                <div class="grid-2">
+                  <div class="field"><label>Período de acompanhamento</label>
+                    <select value=${periodoDireto} onChange=${e => setPeriodoDireto(e.target.value)}>
+                      <option value="7">7 dias</option><option value="15">15 dias</option>
+                      <option value="30">30 dias</option><option value="60">60 dias</option><option value="90">90 dias</option>
+                    </select></div>
+                  <div class="field"><label>Próxima revisão (opcional)</label>
+                    <input type="date" value=${proximaRevisaoDireto} onChange=${e => setProximaRevisaoDireto(e.target.value)} /></div>
+                </div>`}
+              <div class="field"><label>Observação / próxima ação</label>
+                <textarea style=${{ minHeight: "76px" }} value=${obsDireto}
+                  onChange=${e => setObsDireto(e.target.value)}
+                  placeholder="Ex.: realizar nova escuta, aguardar retorno da família, acompanhar a turma..."></textarea></div>
+              <div class="acoes"><button class="btn btn-primary" onClick=${salvarTratamentoDireto}>
+                <${Icon} name="check-circle" size=${16} />Salvar status do caso</button></div>
+              ${sel.tratamentoDireto && sel.tratamentoDireto.status === "em_acompanhamento" && html`
+                <div class="field" style=${{ marginTop: "16px" }}><label>Registrar evolução do acompanhamento</label>
+                  <textarea style=${{ minHeight: "72px" }} value=${registroDireto}
+                    onChange=${e => setRegistroDireto(e.target.value)}
+                    placeholder="Ex.: nova escuta realizada, sem nova ocorrência relatada..."></textarea></div>
+                <div class="acoes"><button class="btn btn-secondary" onClick=${registrarAcompanhamentoDireto}>
+                  Registrar acompanhamento</button></div>
+                ${(sel.acompanhamentosGestor || []).length > 0 && html`<ul class="timeline" style=${{ marginTop: "14px" }}>
+                  ${(sel.acompanhamentosGestor || []).map((r,i) => html`<li key=${i}>
+                    <div class="quando">${quando(r.em)}</div><b>Acompanhamento registrado</b><div>${esc(r.texto)}</div>
+                  </li>`)}
+                </ul>`}
+              `}
+          `}
+    </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${5} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    `}
 
-    ${sel.encaminhamento && sel.encaminhamento.decisao === "equipe" && !sel.equipeConcluidaEm && html`
-      <${Alert} tone="info">Aguardando a Equipe de Apoio concluir o acompanhamento deste caso.</${Alert}>
-      <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("equipe"); }}>
-        Ver Equipe de Apoio <${Icon} name="arrow-right" size=${16} /></button></div>`}
+    ${abaAtiva === 6 && html`
+    <${StepCard} n=${6} title="Acionar Rede de Proteção / Órgãos Competentes" status=${statusPasso[6]}>
+      ${!validado
+        ? html`<p class="dica">Depende da validação da classificação (passo 3).</p>`
+        : !critico
+          ? html`<p class="dica">Não se aplica: este caso não foi classificado como crítico.</p>`
+          : html`${sel.urgencia
+              ? html`<p class="dica">Rede de Proteção acionada em ${quando(sel.urgencia.em)}.</p>
+                  <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("protecao"); }}>
+                    Ver Rede de Proteção <${Icon} name="arrow-right" size=${16} /></button></div>`
+              : html`<${Alert} tone="danger"><b>Caso crítico.</b> Acione a Rede de Proteção / Órgãos Competentes e as medidas de proteção imediatamente. Isso é independente da decisão de encaminhamento acima.</${Alert}>
+                  <div class="acoes"><button class="btn btn-danger" onClick=${() => dispatch({ type: "ACIONAR_URGENCIA", casoId: sel.id })}>
+                    <${Icon} name="alert-triangle" size=${16} />Acionar Rede de Proteção</button></div>`}
+            ${sel.urgencia && !parecerConcluido(sel) && html`
+              <${Alert} tone="warn">Aguardando o parecer da Rede de Proteção / Órgãos Competentes.</${Alert}>
+              <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("protecao"); }}>
+                Ver Rede de Proteção <${Icon} name="arrow-right" size=${16} /></button></div>`}`}
+    </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${6} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    `}
 
-    ${sel.encaminhamento && sel.encaminhamento.decisao === "escalonar" && !sel.decisaoInstitucional && html`
-      <${Alert} tone="info">Aguardando a decisão institucional da Gestão Escolar.</${Alert}>
-      <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("escola"); }}>
-        Ver Gestão Escolar <${Icon} name="arrow-right" size=${16} /></button></div>`}
-
-    ${critico && sel.urgencia && !parecerConcluido(sel) && html`
-      <${Alert} tone="warn">Aguardando o parecer da Rede de Proteção / Órgãos Competentes.</${Alert}>
-      <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("protecao"); }}>
-        Ver Rede de Proteção <${Icon} name="arrow-right" size=${16} /></button></div>`}
-
-    ${sel.encaminhamento && html`
-      <${StepCard} n=${7} title="Encerrar caso e registrar justificativa final" status=${sel.desfecho ? "concluido" : pronto ? "atual" : "bloqueado"}>
-        ${sel.desfecho
+    ${abaAtiva === 7 && html`
+    <${StepCard} n=${7} title="Encerrar caso e registrar justificativa final" status=${statusPasso[7]}>
+      ${!sel.encaminhamento
+        ? html`<p class="dica">Depende da decisão de encaminhamento (passo 4).</p>`
+        : sel.desfecho
           ? html`<p class="dica">Desfecho registrado em ${quando(sel.desfecho.em)}: "${esc(sel.desfecho.justificativa) || "(sem justificativa detalhada)"}"</p>`
           : !pronto
             ? html`<p class="dica">${sel.encaminhamento.decisao === "tratar"
@@ -2667,52 +2928,70 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
                   onConfirmar: encerrar,
                   onCancelar: () => setEncerrando(false)
                 }); }}>${encerrando ? "Encerrando…" : "Registrar encerramento"}</button></div>`}
-      </${StepCard}>`}
+    </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${7} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    `}
 
-    ${sel.desfecho && html`
-      <${StepCard} n=${8} title="Arquivar caso e manter histórico" status="atual">
-        <div class="acoes"><button class="btn btn-primary" disabled=${arquivando} onClick=${() => { setArquivando(true); showConfirm({
-          titulo: "Arquivar caso",
-          mensagem: "Esta ação é definitiva: depois de arquivado, o caso sai da lista de casos ativos e vira só consulta (histórico/Escudo Probatório) — não é mais possível editar nenhuma etapa dele.",
-          textoConfirmar: "Confirmar arquivamento",
-          onConfirmar: () => {
-            dispatch({ type: "ARQUIVAR", casoId: sel.id });
-            showAviso("Caso " + sel.protocolo + " arquivado com sucesso. Ele passa a contar como histórico auditável (Escudo Probatório) e entra nos indicadores agregados da Gestão da Rede de Ensino — que não acessa casos individuais.");
-          },
-          onCancelar: () => setArquivando(false)
-        }); }}><${Icon} name="lock" size=${16} />${arquivando ? "Arquivando…" : "Arquivar caso"}</button></div>
-      </${StepCard}>`}
+    ${abaAtiva === 8 && html`
+    <${StepCard} n=${8} title="Arquivar caso e manter histórico" status=${statusPasso[8]}>
+      ${!sel.desfecho
+        ? html`<p class="dica">Depende do encerramento do caso (passo 7).</p>`
+        : html`<div class="acoes"><button class="btn btn-primary" disabled=${arquivando} onClick=${() => { setArquivando(true); showConfirm({
+              titulo: "Arquivar caso",
+              mensagem: "Esta ação é definitiva: depois de arquivado, o caso sai da lista de casos ativos e vira só consulta (histórico/Escudo Probatório) — não é mais possível editar nenhuma etapa dele.",
+              textoConfirmar: "Confirmar arquivamento",
+              onConfirmar: () => {
+                dispatch({ type: "ARQUIVAR", casoId: sel.id });
+                showAviso("Caso " + sel.protocolo + " arquivado com sucesso. Ele passa a contar como histórico auditável (Escudo Probatório) e entra nos indicadores agregados da Gestão da Rede de Ensino — que não acessa casos individuais.");
+              },
+              onCancelar: () => setArquivando(false)
+            }); }}><${Icon} name="lock" size=${16} />${arquivando ? "Arquivando…" : "Arquivar caso"}</button></div>`}
+    </${StepCard}>
+    `}
     `)}
 
-    ${secao === "planos" && html`
-      <div class="actor-head"><h1>Planos de ação</h1>
-        <p class="lede">Somente casos com encaminhamento ativo neste estágio.</p></div>
-      ${!sel
-        ? (pendentes.length ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar} />`
-          : html`<${Alert} tone="info">Nenhum caso neste status.</${Alert}>`)
-        : html`<div class="card">
-            <div class="acoes" style=${{ marginTop: 0 }}><button class="btn btn-ghost" onClick=${() => selecionar(null)}>← Voltar para a fila</button></div>
-            <h3>${sel.protocolo}</h3><p class="card-sub">Status atual: <b>${statusOperacional(sel)}</b></p>
-            <${LinhaDoTempo} kase=${sel} />
+    ${secao === "encerrados" && (() => {
+      const verEncerrado = arquivados.find(c => c.protocolo === verEncerradoProtocolo) || null;
+      return html`
+      <div class="actor-head"><h1>Casos encerrados</h1>
+        <p class="lede">Histórico disponível para rastreabilidade e auditoria — só consulta, não
+          é mais possível editar nenhuma etapa.</p></div>
+      ${arquivados.length === 0
+        ? html`<${Alert} tone="info">Nenhum caso encerrado no momento.</${Alert}>`
+        : html`<div class="card" style=${{ padding: 0, overflowX: "auto" }}>
+            <table class="tbl">
+              <thead><tr><th>Protocolo</th><th>Relato</th><th>Status</th><th>Registrado em</th><th></th></tr></thead>
+              <tbody>
+                ${arquivados.map(c => html`<tr key=${c.protocolo}>
+                  <td><div style=${{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "wrap" }}>
+                    <b>${c.protocolo || "Aguardando protocolo"}</b>
+                    ${c.identificacao === "anonimo" && html`<${Badge} tone="neutro">Anônimo</${Badge}>`}
+                  </div></td>
+                  <td style=${{ maxWidth: "360px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>${c.relato ? esc(c.relato) : "—"}</td>
+                  <td><${Badge} tone="baixa">Encerrado</${Badge}></td>
+                  <td>${quando(c.enviadoEm)}</td>
+                  <td><button class="btn-icon" title="Ver detalhes" onClick=${() => setVerEncerradoProtocolo(c.protocolo)}><${Icon} name="eye" size=${17} /></button></td>
+                </tr>`)}
+              </tbody>
+            </table>
           </div>`}
-    `}
-    ${secao === "acompanhamentos" && html`
-      <div class="actor-head"><h1>Acompanhamentos</h1>
-        <p class="lede">Somente casos com status <b>Em acompanhamento</b>.</p></div>
-      ${!sel
-        ? (pendentes.length ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar} />`
-          : html`<${Alert} tone="info">Nenhum caso em acompanhamento no momento.</${Alert}>`)
-        : html`<div class="card">
-            <div class="acoes" style=${{ marginTop: 0 }}><button class="btn btn-ghost" onClick=${() => selecionar(null)}>← Voltar para a fila</button></div>
-            <h3>${sel.protocolo}</h3><p class="card-sub">Status: <b>${statusOperacional(sel)}</b></p>
-            <${LinhaDoTempo} kase=${sel} />
-          </div>`}
-    `}
-    ${secao === "encerrados" && html`
-      <${ResumoLista} titulo="Casos encerrados e arquivados"
-        subtitulo="Histórico disponível para rastreabilidade e auditoria."
-        itens=${arquivados.map(c => ({ quando: c.protocolo, titulo: "Caso arquivado", texto: c.desfecho ? esc(c.desfecho.justificativa || "") : "" }))} />
-    `}
+      ${verEncerrado && html`<${Modal} title=${"Caso " + (verEncerrado.protocolo || "(sem protocolo)")} onClose=${() => setVerEncerradoProtocolo(null)}>
+        <div class="card">
+          <p style=${{ whiteSpace: "pre-wrap" }}>${verEncerrado.relato ? esc(verEncerrado.relato) : "Relato não disponível neste registro."}</p>
+          <table class="tbl">
+            <tr><th>Registrado em</th><td>${quando(verEncerrado.enviadoEm)}</td></tr>
+            <tr><th>Identificação</th><td>${verEncerrado.identificacao === "anonimo" ? "Anônimo" : "Identificado"}</td></tr>
+            ${verEncerrado.validacao && html`<tr><th>Categoria validada</th><td>${esc(verEncerrado.validacao.categoria)}</td></tr>`}
+            ${verEncerrado.validacao && html`<tr><th>Prioridade</th><td><${Badge} tone=${toneFor(verEncerrado.validacao.prioridade)}>${verEncerrado.validacao.prioridade}</${Badge}></td></tr>`}
+            ${verEncerrado.encaminhamento && html`<tr><th>Encaminhamento</th><td>${ENCAMINHAMENTO_LABEL[verEncerrado.encaminhamento.decisao]}</td></tr>`}
+            ${verEncerrado.desfecho && html`<tr><th>Desfecho</th><td>${esc(verEncerrado.desfecho.justificativa) || "(sem justificativa detalhada)"}</td></tr>`}
+            ${verEncerrado.desfecho && html`<tr><th>Encerrado em</th><td>${quando(verEncerrado.desfecho.em)}</td></tr>`}
+            ${verEncerrado.arquivadoEm && html`<tr><th>Arquivado em</th><td>${quando(verEncerrado.arquivadoEm)}</td></tr>`}
+          </table>
+        </div>
+      </${Modal}>`}
+    `;
+    })()}
     ${secao === "alertas" && html`
       <${DestaqueIAPerfil}
         titulo="Alertas e possível recorrência"
@@ -2725,17 +3004,6 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
         recomendacao="Use os alertas para escolher quais casos revisar primeiro e confirme manualmente qualquer correlação antes de decidir."
         aviso="Correlação e recorrência são sinais de apoio à decisão, não prova de autoria, culpa ou enquadramento."
       />
-    `}
-    ${secao === "indicadores" && html`
-      <div class="card">
-        <h3><${Icon} name="bar-chart" size=${18} /> Indicadores da minha carteira</h3>
-        <div class="tiles">
-          <div class="tile"><div class="n">${pendentes.length}</div><div class="lbl">Em aberto</div></div>
-          <div class="tile"><div class="n">${pendentes.filter(c => !!c.validacao).length}</div><div class="lbl">Triagens validadas</div></div>
-          <div class="tile"><div class="n">${pendentes.filter(c => !!c.encaminhamento).length}</div><div class="lbl">Com encaminhamento</div></div>
-          <div class="tile"><div class="n">${arquivados.length}</div><div class="lbl">Arquivados</div></div>
-        </div>
-      </div>
     `}
   </${ProfileShell}>`;
 }
@@ -2901,10 +3169,6 @@ function TelaProtecao({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, 
 const SECOES_EQUIPE = [
   { grupo: "Minha atuação" },
   { id: "visao", label: "Visão geral", icon: "bar-chart" },
-  { id: "casos", label: "Casos atribuídos", icon: "heart" },
-  { id: "providencias", label: "Providências a executar", icon: "clipboard-check" },
-  { id: "registros", label: "Registrar atendimento", icon: "edit" },
-  { id: "acompanhamentos", label: "Acompanhamentos", icon: "activity" },
   { grupo: "Apoio da IA" },
   { id: "ia-execucao", label: "Sugestões para execução", icon: "cpu" }
 ];
@@ -2918,15 +3182,13 @@ function TelaEquipe({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
   function filtroEquipe(c) {
     const atribuido = c.encaminhamento && c.encaminhamento.decisao === "equipe" && !c.arquivadoEm;
     if (!atribuido) return false;
-    if (secao === "providencias") return !c.equipeConcluidaEm && !(c.acompanhamentos || []).length;
-    if (secao === "acompanhamentos") return !c.equipeConcluidaEm && (c.acompanhamentos || []).length > 0;
-    if (secao === "registros" || secao === "casos") return !c.equipeConcluidaEm;
+    if (secao === "visao") return !c.equipeConcluidaEm;
     return atribuido;
   }
   const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroEquipe, casoFoco);
   // Mesma correção da Tela do Gestor: casoFoco abre o caso, mas o conteúdo só renderiza dentro
   // de uma das seções de fila — sem isso, o caso abriria "por baixo" da Visão geral.
-  useEffect(() => { if (casoFoco) setSecao("casos"); }, [casoFoco]);
+  useEffect(() => { if (casoFoco) setSecao("visao"); }, [casoFoco]);
   const a = sel ? analisar(sel.relato) : null;
   // Mesmo padrão de auto-desabilitar no clique usado no Gestor do Caso — evita um segundo clique
   // disparar EQUIPE_CONCLUIR de novo antes do estado atualizar; reseta ao trocar de caso.
@@ -2950,11 +3212,30 @@ function TelaEquipe({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
   return html`<${ProfileShell} profile="equipe" navigate=${navigate} casos=${casos}
     secoes=${SECOES_EQUIPE} ativa=${secao} onTrocar=${s => { selecionar(null); setSecao(s); }} colapsada=${colapsada} onColapsar=${onColapsar}>
 
-    ${["casos","providencias","registros","acompanhamentos"].includes(secao) && (!sel
-      ? html`${pendentes.length
-          ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar} />`
-          : html`<${Alert} tone="info">Nenhum caso atribuído a esta equipe no momento. O Gestor do
-              Caso atribui um caso aqui ao escolher "Atribuir à Equipe de Apoio".</${Alert}>`}`
+    ${secao === "visao" && (!sel
+      ? html`
+          ${secao === "visao" && html`
+            <div class="tiles">
+              <div class="tile"><div class="n">${pendentes.length}</div><div class="lbl">Casos atribuídos</div></div>
+              <div class="tile"><div class="n">${pendentes.filter(c => !c.equipeConcluidaEm).length}</div><div class="lbl">Acompanhamentos abertos</div></div>
+              <div class="tile"><div class="n">${pendentes.reduce((n,c) => n + (c.acompanhamentos || []).length, 0)}</div><div class="lbl">Registros realizados</div></div>
+            </div>
+            <${DestaqueIAPerfil}
+              titulo="IA de apoio à execução"
+              subtitulo="A IA usa a classificação já validada para lembrar providências coerentes com o protocolo."
+              itens=${sel && a ? [
+                { rotulo: "Próxima ação", valor: sugerirTratamento(a)[0] || "Revisar protocolo validado", dica: "Sugestão assistiva." },
+                { rotulo: "Prazo de referência", valor: sel.validacao ? PRAZO[sel.validacao.prioridade] : "A definir", dica: "Conforme prioridade validada." },
+                { rotulo: "Registro necessário", valor: "Evidências e resultado", dica: "Documentar o que foi executado." }
+              ] : []}
+              recomendacao="Acesse um caso atribuído, execute as ações previstas pelo Gestor do Caso e registre evidências e evolução."
+              aviso="A Equipe de Apoio não altera sozinha a classificação ou prioridade validada pelo Gestor do Caso."
+            />
+          `}
+          ${pendentes.length
+            ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar} />`
+            : html`<${Alert} tone="info">Nenhum caso atribuído a esta equipe no momento. O Gestor do
+                Caso atribui um caso aqui ao escolher "Atribuir à Equipe de Apoio".</${Alert}>`}`
       : html`
     <div class="acoes" style=${{ marginTop: 0, marginBottom: "12px" }}>
       <button class="btn btn-ghost" onClick=${() => selecionar(null)}>← Voltar para a fila</button>
@@ -2998,24 +3279,6 @@ function TelaEquipe({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
     </${StepCard}>
     `)}
 
-    ${secao === "visao" && html`
-      <div class="tiles">
-        <div class="tile"><div class="n">${pendentes.length}</div><div class="lbl">Casos atribuídos</div></div>
-        <div class="tile"><div class="n">${pendentes.filter(c => !c.equipeConcluidaEm).length}</div><div class="lbl">Acompanhamentos abertos</div></div>
-        <div class="tile"><div class="n">${pendentes.reduce((n,c) => n + (c.acompanhamentos || []).length, 0)}</div><div class="lbl">Registros realizados</div></div>
-      </div>
-      <${DestaqueIAPerfil}
-        titulo="IA de apoio à execução"
-        subtitulo="A IA usa a classificação já validada para lembrar providências coerentes com o protocolo."
-        itens=${sel && a ? [
-          { rotulo: "Próxima ação", valor: sugerirTratamento(a)[0] || "Revisar protocolo validado", dica: "Sugestão assistiva." },
-          { rotulo: "Prazo de referência", valor: sel.validacao ? PRAZO[sel.validacao.prioridade] : "A definir", dica: "Conforme prioridade validada." },
-          { rotulo: "Registro necessário", valor: "Evidências e resultado", dica: "Documentar o que foi executado." }
-        ] : []}
-        recomendacao="Acesse um caso atribuído, execute as ações previstas pelo Gestor do Caso e registre evidências e evolução."
-        aviso="A Equipe de Apoio não altera sozinha a classificação ou prioridade validada pelo Gestor do Caso."
-      />
-    `}
     ${secao === "ia-execucao" && html`
       <${DestaqueIAPerfil}
         titulo="Sugestões da IA para execução"
@@ -3153,7 +3416,6 @@ function statusListagem(c) {
 const SECOES_ESCOLA = [
   { grupo: "Visão da escola" },
   { id: "painel", label: "Painel da escola", icon: "bar-chart" },
-  { id: "casos", label: "Casos escalonados", icon: "activity" },
   { id: "criticos", label: "Casos críticos", icon: "alert-triangle" },
   { grupo: "Prevenção e inteligência" },
   { id: "inteligencia", label: "Padrões e alertas", icon: "cpu" },
@@ -3169,13 +3431,13 @@ function TelaEscola({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
   function filtroEscola(c) {
     if (c.arquivadoEm) return false;
     if (secao === "criticos") return isCritico(c) && !c.desfecho;
-    if (secao === "casos") return !!(c.encaminhamento && c.encaminhamento.decisao === "escalonar" && !c.decisaoInstitucional);
+    if (secao === "painel") return !!(c.encaminhamento && c.encaminhamento.decisao === "escalonar" && !c.decisaoInstitucional);
     return !c.arquivadoEm;
   }
   const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroEscola, casoFoco);
   // Mesma correção da Tela do Gestor: casoFoco abre o caso, mas o conteúdo só renderiza dentro
-  // de "Casos escalonados"/"Casos críticos" — sem isso, o caso abriria "por baixo" do Painel.
-  useEffect(() => { if (casoFoco) setSecao("casos"); }, [casoFoco]);
+  // de "Painel"/"Casos críticos" — sem isso, o caso abriria "por baixo" do Painel.
+  useEffect(() => { if (casoFoco) setSecao("painel"); }, [casoFoco]);
 
   function registrarDecisao() {
     if (!decisaoTexto.trim()) { showAviso("Escreva a decisão institucional antes de registrar."); return; }
@@ -3185,10 +3447,29 @@ function TelaEscola({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
   return html`<${ProfileShell} profile="escola" navigate=${navigate} casos=${casos}
     secoes=${SECOES_ESCOLA} ativa=${secao} onTrocar=${s => { selecionar(null); setSecao(s); }} colapsada=${colapsada} onColapsar=${onColapsar}>
 
-    ${(secao === "casos" || secao === "criticos") && (!sel
-      ? html`${pendentes.length
-          ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar} />`
-          : html`<${Alert} tone="info">Nenhum caso neste status para a Gestão Escolar.</${Alert}>`}`
+    ${(secao === "painel" || secao === "criticos") && (!sel
+      ? html`
+          ${secao === "painel" && html`
+            <div class="tiles">
+              <div class="tile"><div class="n">${casos.filter(c => !c.arquivadoEm).length}</div><div class="lbl">Casos ativos</div></div>
+              <div class="tile"><div class="n">${casos.filter(c => isCritico(c) && !c.arquivadoEm).length}</div><div class="lbl">Casos críticos</div></div>
+              <div class="tile"><div class="n">${casos.filter(c => c.encaminhamento && c.encaminhamento.decisao === "escalonar" && !c.arquivadoEm).length}</div><div class="lbl">Escalonados à gestão</div></div>
+            </div>
+            <${DestaqueIAPerfil}
+              titulo="Inteligência para a Gestão Escolar"
+              subtitulo="A IA consolida sinais dos casos para apoiar prevenção, governança e priorização institucional."
+              itens=${[
+                { rotulo: "Possível recorrência", valor: casos.filter(c => analisar(c.relato).recorrencia.length > 0).length + " caso(s)", dica: "Requer verificação humana." },
+                { rotulo: "Componente digital", valor: casos.filter(c => analisar(c.relato).achados.some(x => x.id === "digital")).length + " caso(s)", dica: "Possível foco preventivo." },
+                { rotulo: "Críticos", valor: casos.filter(c => isCritico(c) && !c.arquivadoEm).length + " caso(s)", dica: "Acompanhar providências e proteção." }
+              ]}
+              recomendacao="Revise os padrões recorrentes, os casos críticos e a aderência aos acompanhamentos antes de definir ações institucionais."
+              aviso="Os indicadores ajudam a orientar prevenção; não devem expor estudantes nem substituir a análise individual de cada caso."
+            />
+          `}
+          ${pendentes.length
+            ? html`<${FilaTabela} casos=${pendentes} selecionadoId=${null} onSelecionar=${selecionar} />`
+            : html`<${Alert} tone="info">Nenhum caso neste status para a Gestão Escolar.</${Alert}>`}`
       : html`
     <div class="acoes" style=${{ marginTop: 0, marginBottom: "12px" }}>
       <button class="btn btn-ghost" onClick=${() => selecionar(null)}>← Voltar para a fila</button>
@@ -3255,24 +3536,6 @@ function TelaEscola({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
       </div>
     `}
 
-    ${secao === "painel" && html`
-      <div class="tiles">
-        <div class="tile"><div class="n">${casos.filter(c => !c.arquivadoEm).length}</div><div class="lbl">Casos ativos</div></div>
-        <div class="tile"><div class="n">${casos.filter(c => isCritico(c) && !c.arquivadoEm).length}</div><div class="lbl">Casos críticos</div></div>
-        <div class="tile"><div class="n">${casos.filter(c => c.encaminhamento && c.encaminhamento.decisao === "escalonar" && !c.arquivadoEm).length}</div><div class="lbl">Escalonados à gestão</div></div>
-      </div>
-      <${DestaqueIAPerfil}
-        titulo="Inteligência para a Gestão Escolar"
-        subtitulo="A IA consolida sinais dos casos para apoiar prevenção, governança e priorização institucional."
-        itens=${[
-          { rotulo: "Possível recorrência", valor: casos.filter(c => analisar(c.relato).recorrencia.length > 0).length + " caso(s)", dica: "Requer verificação humana." },
-          { rotulo: "Componente digital", valor: casos.filter(c => analisar(c.relato).achados.some(x => x.id === "digital")).length + " caso(s)", dica: "Possível foco preventivo." },
-          { rotulo: "Críticos", valor: casos.filter(c => isCritico(c) && !c.arquivadoEm).length + " caso(s)", dica: "Acompanhar providências e proteção." }
-        ]}
-        recomendacao="Revise os padrões recorrentes, os casos críticos e a aderência aos acompanhamentos antes de definir ações institucionais."
-        aviso="Os indicadores ajudam a orientar prevenção; não devem expor estudantes nem substituir a análise individual de cada caso."
-      />
-    `}
     ${secao === "inteligencia" && html`
       <${DestaqueIAPerfil}
         titulo="Padrões e alertas da escola"
@@ -3506,6 +3769,13 @@ function TelaLogin({ onEntrar, onRelatoAnonimo, onIrParaCadastro }) {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [entrando, setEntrando] = useState(false);
+  // Consulta pública de protocolo (sem login) — pra quem relatou pelo canal anônimo e só tem o
+  // número do protocolo. Usa a função `consultar_protocolo_publico` (ver schema_supabase.sql,
+  // seção 5), que só devolve o caso que bate exatamente com o protocolo informado.
+  const [consultaAberta, setConsultaAberta] = useState(false);
+  const [protocoloConsulta, setProtocoloConsulta] = useState("");
+  const [consultando, setConsultando] = useState(false);
+  const [resultadoConsulta, setResultadoConsulta] = useState(undefined);
 
   async function entrar(e) {
     e.preventDefault();
@@ -3515,6 +3785,16 @@ function TelaLogin({ onEntrar, onRelatoAnonimo, onIrParaCadastro }) {
     setEntrando(false);
     if (error) { showAviso("Não foi possível entrar: " + error.message); return; }
     onEntrar();
+  }
+
+  async function consultarProtocolo(e) {
+    e.preventDefault();
+    if (!protocoloConsulta.trim()) { showAviso("Digite o número do protocolo."); return; }
+    setConsultando(true);
+    const { data, error } = await sb.rpc("consultar_protocolo_publico", { p_protocolo: protocoloConsulta.trim() });
+    setConsultando(false);
+    if (error) { showAviso("Não foi possível consultar: " + error.message); return; }
+    setResultadoConsulta(data || null);
   }
 
   // Manda o e-mail de recuperação — o link volta pra cá mesmo (esta mesma URL), onde
@@ -3554,6 +3834,32 @@ function TelaLogin({ onEntrar, onRelatoAnonimo, onIrParaCadastro }) {
       </button>
       <p class="dica" style=${{ textAlign: "center", marginTop: "8px", marginBottom: 0 }}>
         Você pode registrar uma situação sem entrar no sistema.</p>
+
+      <p class="dica" style=${{ textAlign: "center", marginTop: "14px", marginBottom: 0 }}>
+        <a href="#" onClick=${e => { e.preventDefault(); setConsultaAberta(!consultaAberta); }}>
+          Já enviei um relato — consultar protocolo</a></p>
+
+      ${consultaAberta && html`
+        <form onSubmit=${consultarProtocolo} style=${{ marginTop: "10px" }}>
+          <div class="field"><label>Número do protocolo</label>
+            <input type="text" placeholder="Ex.: MGBE-2026-1234" value=${protocoloConsulta}
+              onChange=${e => setProtocoloConsulta(e.target.value)} disabled=${consultando} /></div>
+          <button type="submit" class="btn btn-secondary" style=${{ width: "100%" }} disabled=${consultando}>
+            ${consultando ? "Consultando…" : "Consultar"}</button>
+        </form>
+        ${resultadoConsulta === null && html`<div style=${{ marginTop: "10px" }}>
+          <${Alert} tone="info">Protocolo não encontrado. Confira se digitou corretamente.</${Alert}>
+        </div>`}
+        ${resultadoConsulta && (() => {
+          const etapa = ETAPAS_COMUNICANTE.find(e => e.chave === statusSimplificadoComunicante(resultadoConsulta));
+          return html`<div class="card" style=${{ marginTop: "10px" }}>
+            <p class="card-sub" style=${{ margin: "0 0 4px" }}>Protocolo ${resultadoConsulta.protocolo}</p>
+            <${Alert} tone=${etapa.chave === "encerrado" ? "ok" : "info"}>
+              <b>Status atual: ${etapa.label}.</b> ${etapa.mensagem}</${Alert}>
+            <${LinhaDoTempoRelato} statusAtual=${etapa.chave} />
+          </div>`;
+        })()}
+      `}
     </div>
   </div>`;
 }
@@ -3711,7 +4017,17 @@ function TelaRedefinirSenha({ onDefinida }) {
 /* Canal público sem login — mesma tarefa "Registrar relato ou denúncia" da raia Demandante do
    fluxograma, só que sem exigir sessão. Reaproveita o mesmo AssistenteRelato e o mesmo
    ENVIAR_RELATO do reducer (não é um caminho de dados paralelo). Ver plano "Atualização 5". */
-function TelaRelatoAnonimo({ enviado, enviando, onEnviar, onVoltar }) {
+function TelaRelatoAnonimo({ enviado, enviando, onEnviar, onVoltar, protocolo }) {
+  const [copiado, setCopiado] = useState(false);
+  async function copiarProtocolo() {
+    try {
+      await navigator.clipboard.writeText(protocolo);
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      showAviso("Não foi possível copiar automaticamente — selecione e copie o número manualmente.");
+    }
+  }
   return html`<div class="login-shell">
     <div class="login-card" style=${{ maxWidth: "640px" }}>
       <div class="brand" style=${{ justifyContent: "center", marginBottom: "16px" }}>
@@ -3730,9 +4046,19 @@ function TelaRelatoAnonimo({ enviado, enviando, onEnviar, onVoltar }) {
         <${Acolhimento}><b>Relato recebido.</b> Seu relato importa — a equipe responsável vai
           analisar a situação com cuidado. Enviar este relato não significa acusar ou condenar
           ninguém.</${Acolhimento}>
-        <p class="dica">O protocolo já foi gerado automaticamente e o Gestor do Caso foi
-          notificado. Como você optou por não se identificar, não é possível dar retorno direto
-          por aqui — se quiser acompanhar o andamento, procure a equipe responsável na escola.</p>
+        ${protocolo && html`<div class="card" style=${{ textAlign: "center" }}>
+          <p class="card-sub" style=${{ margin: "0 0 4px" }}>Guarde este número para consultar o andamento depois</p>
+          <div class="proto-num" style=${{ margin: 0 }}>${protocolo}</div>
+          <div class="acoes" style=${{ justifyContent: "center", marginTop: "10px" }}>
+            <button class="btn btn-secondary" onClick=${copiarProtocolo}>
+              <${Icon} name=${copiado ? "check-circle" : "clipboard-check"} size=${16} />
+              ${copiado ? "Copiado!" : "Copiar protocolo"}</button>
+          </div>
+        </div>`}
+        <p class="dica">O Gestor do Caso já foi notificado. Como você optou por não se
+          identificar, não é possível dar retorno direto por aqui — mas você pode consultar o
+          andamento a qualquer momento na tela de login, em "Já enviei um relato — consultar
+          protocolo", usando o número acima.</p>
         <div class="acoes" style=${{ justifyContent: "center", marginTop: "16px" }}>
           <button class="btn btn-warm" onClick=${onVoltar}>Voltar ao login</button>
         </div>
@@ -4045,15 +4371,22 @@ function App() {
   function dispatch(action) {
     setCasos(prevCasos => {
       const novoArray = casosReducer(prevCasos, action);
-      const casoAlvo = action.type === "ENVIAR_RELATO"
+      const criando = action.type === "ENVIAR_RELATO";
+      const casoAlvo = criando
         ? novoArray[novoArray.length - 1]
         : novoArray.find(c => c.id === action.casoId);
       if (casoAlvo) {
-        sb.from("casos").upsert({
-          id: casoAlvo.id, protocolo: casoAlvo.protocolo || null,
-          enviado_em: casoAlvo.enviadoEm, arquivado_em: casoAlvo.arquivadoEm || null,
-          dados: casoAlvo
-        }).then(({ error }) => { if (error) showAviso("Erro ao salvar no banco: " + error.message); });
+        const linha = { id: casoAlvo.id, protocolo: casoAlvo.protocolo || null,
+          enviado_em: casoAlvo.enviadoEm, arquivado_em: casoAlvo.arquivadoEm || null, dados: casoAlvo };
+        // INSERT puro na criação (nunca upsert): "INSERT ... ON CONFLICT DO UPDATE" exige
+        // privilégio de UPDATE na tabela mesmo quando nenhum conflito realmente acontece — é
+        // por isso que o canal anônimo (que só tem policy de INSERT) sempre dava erro de RLS
+        // aqui, mesmo com um id novo e único. Ações seguintes (só quem já está autenticado)
+        // continuam sendo um UPDATE de verdade no caso existente.
+        const query = criando
+          ? sb.from("casos").insert(linha)
+          : sb.from("casos").update(linha).eq("id", casoAlvo.id);
+        query.then(({ error }) => { if (error) showAviso("Erro ao salvar no banco: " + error.message); });
       }
       return novoArray;
     });
@@ -4143,8 +4476,12 @@ function App() {
   function onColapsar() { setColapsada(v => !v); }
 
   if (modoAnonimo) {
+    // O caso recém-criado é sempre o último do array (mesmo padrão já usado pro dispatch de
+    // ENVIAR_RELATO) — dá pra mostrar o protocolo pro visitante sem precisar de sessão/RLS extra.
+    const protocoloAnonimo = anonimoEnviado && casos.length ? casos[casos.length - 1].protocolo : null;
     return html`<div><${AvisoHost} /><${TelaRelatoAnonimo} enviado=${anonimoEnviado}
-      enviando=${enviandoAnonimo} onEnviar=${enviarRelatoAnonimo} onVoltar=${sairDoAnonimo} /></div>`;
+      enviando=${enviandoAnonimo} onEnviar=${enviarRelatoAnonimo} onVoltar=${sairDoAnonimo}
+      protocolo=${protocoloAnonimo} /></div>`;
   }
   if (modoRecuperacao) {
     return html`<div><${AvisoHost} /><${TelaRedefinirSenha} onDefinida=${() => {
