@@ -1256,6 +1256,13 @@ function construirLinhaCompleta(kase) {
       detalhe: "Decisão do Gestor do Caso: <b>" + RL[kase.encaminhamento.decisao] + "</b>." }); }
   if (kase.urgencia) itens.push({ em: kase.urgencia.em, titulo: "Rede de Proteção acionada",
     detalhe: "Caso Crítico/Urgente — acionado pelo Gestor do Caso." });
+  if (kase.comunicacaoResponsaveis) { const cr = kase.comunicacaoResponsaveis;
+    const INF = { presencial: "Sim, presencialmente", telefone: "Sim, por telefone", nao: "Não" + (cr.motivoNaoInformados ? " — " + esc(cr.motivoNaoInformados) : "") };
+    itens.push({ em: cr.em, titulo: "Comunicação com responsáveis registrada",
+      detalhe: "Informados: <b>" + INF[cr.informados] + "</b>. Concordaram com os encaminhamentos: <b>" +
+        (cr.concordaramEncaminhamentos ? "Sim" : "Não" + (cr.motivoDiscordancia ? " — " + esc(cr.motivoDiscordancia) : "")) +
+        "</b>. Orientados a registrar Boletim de Ocorrência: <b>" +
+        (cr.orientadosBO ? "Sim" : "Não" + (cr.motivoBO ? " — " + esc(cr.motivoBO) : "")) + "</b>." }); }
   if (kase.protocoloAplicado) itens.push({ em: kase.protocoloAplicado.em, titulo: "Protocolo correspondente aplicado",
     detalhe: "Caso Não crítico — ações educativas/mediação aplicadas automaticamente pelo Sistema MGBE-IA." });
   if (kase.equipeConcluidaEm) itens.push({ em: kase.equipeConcluidaEm, titulo: "Acompanhamento da Equipe de Apoio concluído",
@@ -1366,7 +1373,8 @@ function encaminhamentoConcluido(kase) {
   }
 }
 function prontoParaEncerrar(kase) {
-  return encaminhamentoConcluido(kase) && (!isCritico(kase) || !kase.urgencia || parecerConcluido(kase));
+  return encaminhamentoConcluido(kase) && (!isCritico(kase) || !kase.urgencia || parecerConcluido(kase))
+    && !!kase.comunicacaoResponsaveis;
 }
 function statusOperacional(kase) {
   if (!kase) return "Sem status";
@@ -1476,7 +1484,13 @@ function caseReducer(state, action) {
         // é o que permite "Meus Relatos" filtrar só os relatos da própria pessoa.
         comunicanteId: action.comunicanteId || null,
         enviadoEm: new Date().toISOString(),
-        protocolo: "MGBE-" + new Date().getFullYear() + "-" + n
+        protocolo: "MGBE-" + new Date().getFullYear() + "-" + n,
+        // Sinal de "possível repetição" persistido já no envio (não só quando o Gestor valida),
+        // pra cobrir 100% dos casos — é o que indicadores_rede() (RLS/Atualização 13) lê no banco
+        // pra calcular recorrência agregada sem precisar rodar o motor de regras em SQL. Campo
+        // TOPO do objeto (não dentro de `ia`) de propósito: o case "VALIDAR" abaixo substitui
+        // `state.ia` inteiro por `action.ia`, o que apagaria isso se ficasse aninhado ali.
+        sinaisIA: { recorrencia: analisar(action.relato).recorrencia.length > 0 }
       };
     }
 
@@ -1502,6 +1516,18 @@ function caseReducer(state, action) {
       }
       return base;
     }
+
+    case "GESTOR_REGISTRAR_COMUNICACAO_RESPONSAVEIS":
+      // Documenta se/como os responsáveis foram informados, se concordaram com os
+      // encaminhamentos, e se foram orientados a registrar Boletim de Ocorrência -- pré-requisito
+      // institucional pra liberar o encerramento do caso (ver prontoParaEncerrar()).
+      return { ...state, comunicacaoResponsaveis: {
+        informados: action.informados, motivoNaoInformados: action.motivoNaoInformados || null,
+        concordaramEncaminhamentos: action.concordaramEncaminhamentos,
+        motivoDiscordancia: action.motivoDiscordancia || null,
+        orientadosBO: action.orientadosBO, motivoBO: action.motivoBO || null,
+        em: new Date().toISOString()
+      } };
 
     case "GESTOR_ATUALIZAR_TRATAMENTO_DIRETO":
       return { ...state, tratamentoDireto: {
@@ -1834,18 +1860,22 @@ function StepCard({ n, title, status, children }) {
   </div>`;
 }
 
-/* Interface em abas dos 8 passos da jornada do Gestor do Caso — usada só por TelaGestor por
-   enquanto. Os passos 5 e 6, que hoje somem quando não se aplicam ao caso, passam a usar o
-   status "na" (já existente em STEP_CFG, mas sem uso até aqui) em vez de deixar de renderizar. */
+/* Interface em abas dos 9 passos da jornada do Gestor do Caso — usada só por TelaGestor por
+   enquanto. Os passos 6 e 7, que hoje somem quando não se aplicam ao caso, passam a usar o
+   status "na" (já existente em STEP_CFG, mas sem uso até aqui) em vez de deixar de renderizar.
+   Passo 5 (Comunicação com Responsáveis) foi acrescentado a pedido do usuário (2026-08-27) —
+   documentação institucional que independe do caminho de encaminhamento escolhido, e vira
+   pré-requisito pra liberar o Encerramento (ver prontoParaEncerrar()). */
 const TITULOS_PASSO_GESTOR = [
   { n: 1, curto: "Protocolo",        icone: "file-text",      titulo: "Registrar dados do relato e gerar protocolo (Sistema MGBE-IA)" },
   { n: 2, curto: "Ciência",          icone: "eye",             titulo: "Tomar ciência do caso e revisar análise da IA" },
   { n: 3, curto: "Validação",        icone: "clipboard-check", titulo: "Validar ou ajustar classificação e protocolo sugerido" },
   { n: 4, curto: "Decisão",          icone: "send",            titulo: "Qual a decisão do Gestor do Caso?" },
-  { n: 5, curto: "Condução direta",  icone: "users",           titulo: "Condução direta pelo Gestor do Caso" },
-  { n: 6, curto: "Rede de Proteção", icone: "shield",          titulo: "Acionar Rede de Proteção / Órgãos Competentes" },
-  { n: 7, curto: "Encerramento",     icone: "x-circle",        titulo: "Encerrar caso e registrar justificativa final" },
-  { n: 8, curto: "Arquivamento",     icone: "lock",            titulo: "Arquivar caso e manter histórico" }
+  { n: 5, curto: "Comunicação",      icone: "users",           titulo: "Comunicação com responsáveis" },
+  { n: 6, curto: "Condução direta",  icone: "users",           titulo: "Condução direta pelo Gestor do Caso" },
+  { n: 7, curto: "Rede de Proteção", icone: "shield",          titulo: "Acionar Rede de Proteção / Órgãos Competentes" },
+  { n: 8, curto: "Encerramento",     icone: "x-circle",        titulo: "Encerrar caso e registrar justificativa final" },
+  { n: 9, curto: "Arquivamento",     icone: "lock",            titulo: "Arquivar caso e manter histórico" }
 ];
 
 function calcularStatusPassoGestor(sel, validado, critico, pronto) {
@@ -1856,17 +1886,18 @@ function calcularStatusPassoGestor(sel, validado, critico, pronto) {
     2: "concluido",
     3: validado ? "concluido" : "atual",
     4: sel.encaminhamento ? "concluido" : (validado ? "atual" : "bloqueado"),
-    5: !sel.encaminhamento ? "bloqueado" : (!decisaoTratar ? "na" : (tratamentoPronto ? "concluido" : "atual")),
-    6: !validado ? "bloqueado" : (!critico ? "na" : (sel.urgencia ? "concluido" : "atual")),
-    7: !sel.encaminhamento ? "bloqueado" : (sel.desfecho ? "concluido" : (pronto ? "atual" : "bloqueado")),
-    8: sel.arquivadoEm ? "concluido" : (sel.desfecho ? "atual" : "bloqueado")
+    5: !sel.encaminhamento ? "bloqueado" : (sel.comunicacaoResponsaveis ? "concluido" : "atual"),
+    6: !sel.encaminhamento ? "bloqueado" : (!decisaoTratar ? "na" : (tratamentoPronto ? "concluido" : "atual")),
+    7: !validado ? "bloqueado" : (!critico ? "na" : (sel.urgencia ? "concluido" : "atual")),
+    8: !sel.encaminhamento ? "bloqueado" : (sel.desfecho ? "concluido" : (pronto ? "atual" : "bloqueado")),
+    9: sel.arquivadoEm ? "concluido" : (sel.desfecho ? "atual" : "bloqueado")
   };
 }
 
 // Pula abas "na" em sequência; nunca pula "bloqueado" — o usuário precisa "ver" o bloqueio.
 function proximaAbaAplicavel(desde, statusPasso) {
   let n = desde + 1;
-  while (n < 8 && statusPasso[n] === "na") n++;
+  while (n < 9 && statusPasso[n] === "na") n++;
   return n;
 }
 
@@ -1891,7 +1922,7 @@ function AbasPasso({ passos, ativa, onSelecionar }) {
 // .btn{pointer-events:none}` desabilitaria este botão justamente quando o Gestor mais quer
 // usá-lo (aba atual bloqueada/não aplicável, avançando só pra inspecionar o que vem a seguir).
 function BotaoAvancarPasso({ passoAtual, statusPasso, onAvancar }) {
-  if (passoAtual >= 8) return null;
+  if (passoAtual >= 9) return null;
   const proxima = proximaAbaAplicavel(passoAtual, statusPasso);
   if (proxima <= passoAtual) return null;
   return html`<div class="acoes">
@@ -1965,7 +1996,7 @@ function ProfileShell({ profile, titulo, subtitulo, navigate, casos, secoes, ati
           <span class="ic-chip"><${Icon} name="shield-check" size=${14} /></span>
           <span class="navlink-label">IA supervisionada</span>
         </div>
-        ${ator && html`
+        ${ator && profile !== "rede" && html`
           <div class="gestao-navlink sidebar-static">
             <span class="ic-chip"><${Icon} name="file-text" size=${14} /></span>
             <span class="navlink-label">${casosAbertos > 0 ? `${casosAbertos} caso${casosAbertos > 1 ? "s" : ""} em aberto` : "Nenhum caso em andamento"}</span>
@@ -2476,7 +2507,15 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
   // mas o botão fica indisponível desde o primeiro clique, não só depois do re-render).
   const [encerrando, setEncerrando] = useState(false);
   const [arquivando, setArquivando] = useState(false);
-  // Aba ativa da interface em passos (1 a 8) — sempre reaberta na aba 1 (ver bloco de reset
+  // Passo 5 — Comunicação com responsáveis (documentação institucional, vira pré-requisito do
+  // Encerramento, ver prontoParaEncerrar()).
+  const [informadosResp, setInformadosResp] = useState("presencial");
+  const [motivoNaoInformados, setMotivoNaoInformados] = useState("");
+  const [concordaramEnc, setConcordaramEnc] = useState(true);
+  const [motivoDiscordancia, setMotivoDiscordancia] = useState("");
+  const [orientadosBO, setOrientadosBO] = useState(false);
+  const [motivoBO, setMotivoBO] = useState("");
+  // Aba ativa da interface em passos (1 a 9) — sempre reaberta na aba 1 (ver bloco de reset
   // abaixo e o comentário perto de AbasPasso sobre por que não "pousar" na etapa pendente).
   const [abaAtiva, setAbaAtiva] = useState(1);
   // Linha de protocolo sugerida pela IA (passo 3): geração manual, com uma simulação de
@@ -2512,6 +2551,13 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
     setRegistroDireto("");
     setEncerrando(false);
     setArquivando(false);
+    const cr = sel.comunicacaoResponsaveis || {};
+    setInformadosResp(cr.informados || "presencial");
+    setMotivoNaoInformados(cr.motivoNaoInformados || "");
+    setConcordaramEnc(cr.concordaramEncaminhamentos !== undefined ? cr.concordaramEncaminhamentos : true);
+    setMotivoDiscordancia(cr.motivoDiscordancia || "");
+    setOrientadosBO(cr.orientadosBO !== undefined ? cr.orientadosBO : false);
+    setMotivoBO(cr.motivoBO || "");
     setAbaAtiva(1);
     setProtocoloIA(sel.validacao ? "pronto" : "idle");
     setFaseIA(0);
@@ -2576,6 +2622,22 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
     dispatch({ type: "GESTOR_REGISTRAR_ACOMPANHAMENTO", casoId: sel.id, texto: registroDireto.trim() });
     setRegistroDireto("");
   }
+  function salvarComunicacaoResponsaveis() {
+    if (informadosResp === "nao" && !motivoNaoInformados.trim()) {
+      showAviso("Informe o motivo de os responsáveis não terem sido comunicados."); return;
+    }
+    if (!concordaramEnc && !motivoDiscordancia.trim()) {
+      showAviso("Informe o motivo da discordância com os encaminhamentos."); return;
+    }
+    if (!orientadosBO && !motivoBO.trim()) {
+      showAviso("Informe o motivo de não terem sido orientados a registrar Boletim de Ocorrência."); return;
+    }
+    dispatch({ type: "GESTOR_REGISTRAR_COMUNICACAO_RESPONSAVEIS", casoId: sel.id,
+      informados: informadosResp, motivoNaoInformados: informadosResp === "nao" ? motivoNaoInformados.trim() : null,
+      concordaramEncaminhamentos: concordaramEnc, motivoDiscordancia: !concordaramEnc ? motivoDiscordancia.trim() : null,
+      orientadosBO, motivoBO: !orientadosBO ? motivoBO.trim() : null
+    });
+  }
   function encerrar() {
     dispatch({ type: "ENCERRAR", casoId: sel.id, justificativa: just.trim() });
   }
@@ -2585,9 +2647,10 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
   const statusPasso = sel ? calcularStatusPassoGestor(sel, validado, critico, pronto) : {};
   useAvancoAutomatico(3, validado, abaAtiva, setAbaAtiva, statusPasso);
   useAvancoAutomatico(4, !!(sel && sel.encaminhamento), abaAtiva, setAbaAtiva, statusPasso);
-  useAvancoAutomatico(5, !!(sel && sel.tratamentoDireto && sel.tratamentoDireto.status === "pronto_encerrar"), abaAtiva, setAbaAtiva, statusPasso);
-  useAvancoAutomatico(6, !!(sel && sel.urgencia), abaAtiva, setAbaAtiva, statusPasso);
-  useAvancoAutomatico(7, !!(sel && sel.desfecho), abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(5, !!(sel && sel.comunicacaoResponsaveis), abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(6, !!(sel && sel.tratamentoDireto && sel.tratamentoDireto.status === "pronto_encerrar"), abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(7, !!(sel && sel.urgencia), abaAtiva, setAbaAtiva, statusPasso);
+  useAvancoAutomatico(8, !!(sel && sel.desfecho), abaAtiva, setAbaAtiva, statusPasso);
 
   return html`<${ProfileShell} profile="gestor" navigate=${navigate} casos=${casos}
     secoes=${SECOES_GESTOR} ativa=${secao} onTrocar=${s => { selecionar(null); setSecao(s); }} colapsada=${colapsada} onColapsar=${onColapsar}>
@@ -2863,7 +2926,66 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
     `}
 
     ${abaAtiva === 5 && html`
-    <${StepCard} n=${5} title="Condução direta pelo Gestor do Caso" status=${statusPasso[5]}>
+    <${StepCard} n=${5} title="Comunicação com responsáveis" status=${statusPasso[5]}>
+      ${!sel.encaminhamento
+        ? html`<p class="dica">Depende da decisão de encaminhamento (passo 4).</p>`
+        : sel.comunicacaoResponsaveis
+          ? html`<table class="tbl">
+              <tr><th>Responsáveis informados</th><td>${{ presencial: "Sim, presencialmente", telefone: "Sim, por telefone", nao: "Não" }[sel.comunicacaoResponsaveis.informados]}</td></tr>
+              ${sel.comunicacaoResponsaveis.motivoNaoInformados && html`<tr><th>Motivo</th><td>${esc(sel.comunicacaoResponsaveis.motivoNaoInformados)}</td></tr>`}
+              <tr><th>Concordaram com os encaminhamentos</th><td>${sel.comunicacaoResponsaveis.concordaramEncaminhamentos ? "Sim" : "Não"}</td></tr>
+              ${sel.comunicacaoResponsaveis.motivoDiscordancia && html`<tr><th>Motivo da discordância</th><td>${esc(sel.comunicacaoResponsaveis.motivoDiscordancia)}</td></tr>`}
+              <tr><th>Orientados a registrar Boletim de Ocorrência</th><td>${sel.comunicacaoResponsaveis.orientadosBO ? "Sim" : "Não"}</td></tr>
+              ${sel.comunicacaoResponsaveis.motivoBO && html`<tr><th>Motivo</th><td>${esc(sel.comunicacaoResponsaveis.motivoBO)}</td></tr>`}
+              <tr><th>Registrado em</th><td>${quando(sel.comunicacaoResponsaveis.em)}</td></tr>
+            </table>`
+          : html`
+              <p class="card-sub">Documentação institucional — registre como a família foi
+                comunicada sobre o caso. Isso é pré-requisito pra liberar o encerramento.</p>
+              <div class="field"><label>Responsáveis informados?</label>
+                <div class="acoes" style=${{ marginTop: "4px" }}>
+                  <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+                    <input type="radio" name="informados-resp" checked=${informadosResp === "presencial"} onChange=${() => setInformadosResp("presencial")} />
+                    Sim, presencialmente</label>
+                  <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+                    <input type="radio" name="informados-resp" checked=${informadosResp === "telefone"} onChange=${() => setInformadosResp("telefone")} />
+                    Sim, por telefone</label>
+                  <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+                    <input type="radio" name="informados-resp" checked=${informadosResp === "nao"} onChange=${() => setInformadosResp("nao")} />
+                    Não</label>
+                </div>
+                ${informadosResp === "nao" && html`<input type="text" style=${{ marginTop: "8px" }} placeholder="Motivo"
+                  value=${motivoNaoInformados} onChange=${e => setMotivoNaoInformados(e.target.value)} />`}
+              </div>
+              <div class="field"><label>Concordaram com os encaminhamentos?</label>
+                <div class="acoes" style=${{ marginTop: "4px" }}>
+                  <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+                    <input type="radio" name="concordaram-enc" checked=${concordaramEnc === true} onChange=${() => setConcordaramEnc(true)} /> Sim</label>
+                  <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+                    <input type="radio" name="concordaram-enc" checked=${concordaramEnc === false} onChange=${() => setConcordaramEnc(false)} /> Não</label>
+                </div>
+                ${!concordaramEnc && html`<input type="text" style=${{ marginTop: "8px" }} placeholder="Motivo"
+                  value=${motivoDiscordancia} onChange=${e => setMotivoDiscordancia(e.target.value)} />`}
+              </div>
+              <div class="field"><label>Foram orientados a registrar Boletim de Ocorrência?</label>
+                <div class="acoes" style=${{ marginTop: "4px" }}>
+                  <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+                    <input type="radio" name="orientados-bo" checked=${orientadosBO === true} onChange=${() => setOrientadosBO(true)} /> Sim</label>
+                  <label style=${{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 400 }}>
+                    <input type="radio" name="orientados-bo" checked=${orientadosBO === false} onChange=${() => setOrientadosBO(false)} /> Não</label>
+                </div>
+                ${!orientadosBO && html`<input type="text" style=${{ marginTop: "8px" }} placeholder="Motivo"
+                  value=${motivoBO} onChange=${e => setMotivoBO(e.target.value)} />`}
+              </div>
+              <div class="acoes"><button class="btn btn-primary" onClick=${salvarComunicacaoResponsaveis}>
+                <${Icon} name="check-circle" size=${16} />Salvar comunicação com responsáveis</button></div>
+            `}
+    </${StepCard}>
+    <${BotaoAvancarPasso} passoAtual=${5} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    `}
+
+    ${abaAtiva === 6 && html`
+    <${StepCard} n=${6} title="Condução direta pelo Gestor do Caso" status=${statusPasso[6]}>
       ${!sel.encaminhamento
         ? html`<p class="dica">Depende da decisão de encaminhamento (passo 4).</p>`
         : sel.encaminhamento.decisao !== "tratar"
@@ -2913,11 +3035,11 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
               `}
           `}
     </${StepCard}>
-    <${BotaoAvancarPasso} passoAtual=${5} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    <${BotaoAvancarPasso} passoAtual=${6} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
     `}
 
-    ${abaAtiva === 6 && html`
-    <${StepCard} n=${6} title="Acionar Rede de Proteção / Órgãos Competentes" status=${statusPasso[6]}>
+    ${abaAtiva === 7 && html`
+    <${StepCard} n=${7} title="Acionar Rede de Proteção / Órgãos Competentes" status=${statusPasso[7]}>
       ${!validado
         ? html`<p class="dica">Depende da validação da classificação (passo 3).</p>`
         : !critico
@@ -2934,19 +3056,21 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
               <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("protecao"); }}>
                 Ver Rede de Proteção <${Icon} name="arrow-right" size=${16} /></button></div>`}`}
     </${StepCard}>
-    <${BotaoAvancarPasso} passoAtual=${6} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    <${BotaoAvancarPasso} passoAtual=${7} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
     `}
 
-    ${abaAtiva === 7 && html`
-    <${StepCard} n=${7} title="Encerrar caso e registrar justificativa final" status=${statusPasso[7]}>
+    ${abaAtiva === 8 && html`
+    <${StepCard} n=${8} title="Encerrar caso e registrar justificativa final" status=${statusPasso[8]}>
       ${!sel.encaminhamento
         ? html`<p class="dica">Depende da decisão de encaminhamento (passo 4).</p>`
         : sel.desfecho
           ? html`<p class="dica">Desfecho registrado em ${quando(sel.desfecho.em)}: "${esc(sel.desfecho.justificativa) || "(sem justificativa detalhada)"}"</p>`
           : !pronto
-            ? html`<p class="dica">${sel.encaminhamento.decisao === "tratar"
-                ? "O caso permanece " + statusOperacional(sel) + ". Para encerrar, altere a condução direta para “Pronto para encerramento” após concluir a análise/acompanhamento."
-                : "Depende da conclusão da raia escolhida no encaminhamento (e do parecer da Rede de Proteção, se aplicável)."}</p>`
+            ? html`<p class="dica">${!sel.comunicacaoResponsaveis
+                ? "Depende do registro da comunicação com responsáveis (passo 5)."
+                : sel.encaminhamento.decisao === "tratar"
+                  ? "O caso permanece " + statusOperacional(sel) + ". Para encerrar, altere a condução direta para “Pronto para encerramento” após concluir a análise/acompanhamento."
+                  : "Depende da conclusão da raia escolhida no encaminhamento (e do parecer da Rede de Proteção, se aplicável)."}</p>`
             : html`<div class="field"><label>Justificativa do encerramento</label>
                 <textarea style=${{ minHeight: "70px" }} placeholder="Ex.: providências executadas, situação acompanhada sem reincidência..."
                   value=${just} onChange=${e => setJust(e.target.value)} disabled=${encerrando}></textarea></div>
@@ -2958,18 +3082,18 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
                   onCancelar: () => setEncerrando(false)
                 }); }}>${encerrando ? "Encerrando…" : "Registrar encerramento"}</button></div>`}
     </${StepCard}>
-    <${BotaoAvancarPasso} passoAtual=${7} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
+    <${BotaoAvancarPasso} passoAtual=${8} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
     `}
 
-    ${abaAtiva === 8 && html`
-    <${StepCard} n=${8} title="Arquivar caso e manter histórico" status=${statusPasso[8]}>
+    ${abaAtiva === 9 && html`
+    <${StepCard} n=${9} title="Arquivar caso e manter histórico" status=${statusPasso[9]}>
       ${sel.arquivadoEm
         ? html`<${Alert} tone="ok">Caso arquivado com sucesso em ${quando(sel.arquivadoEm)}. Ele
             agora é só consulta (histórico/Escudo Probatório) — não é mais possível editar
             nenhuma etapa dele. Entra nos indicadores agregados da Gestão da Rede de Ensino, que
             não acessa casos individuais.</${Alert}>`
         : !sel.desfecho
-          ? html`<p class="dica">Depende do encerramento do caso (passo 7).</p>`
+          ? html`<p class="dica">Depende do encerramento do caso (passo 8).</p>`
           : html`<div class="acoes"><button class="btn btn-primary" disabled=${arquivando} onClick=${() => { setArquivando(true); showConfirm({
                 titulo: "Arquivar caso",
                 mensagem: "Esta ação é definitiva: depois de arquivado, o caso sai da lista de casos ativos e vira só consulta (histórico/Escudo Probatório) — não é mais possível editar nenhuma etapa dele.",
@@ -3642,11 +3766,94 @@ const SECOES_REDE = [
   { id: "relatorios", label: "Relatórios", icon: "file-text" }
 ];
 
-function TelaRede({ casos, navigate, arquivados, colapsada, onColapsar }) {
+/* ============================================================== agregados da raia "rede" (RLS)
+   Atualização 13: a raia "rede" deixou de receber `casos`/`arquivados` como prop — no banco ela
+   não tem NENHUMA policy de leitura em `casos` (só a função indicadores_rede(), que devolve
+   somas/contagens já agregadas, nunca uma linha). Os 4 casos de SEED_ARQUIVADOS continuam sendo
+   uma constante do módulo (nunca existiram na tabela `casos`), então o RPC não sabe deles — o
+   `mesclarComSeed` abaixo soma o que veio do banco com o que é calculado aqui, client-side, sobre
+   a constante. Nunca faz média de médias já prontas (dá conta errada); sempre soma numerador e
+   denominador primeiro, divide por último. */
+const SEED_AGREGADOS = (() => {
+  const tt = SEED_ARQUIVADOS.reduce((acc, c) => {
+    const d = diasEntre(c.enviadoEm, c.desfecho && c.desfecho.em);
+    return d === null ? acc : { soma_dias: acc.soma_dias + d, contagem: acc.contagem + 1 };
+  }, { soma_dias: 0, contagem: 0 });
+  return {
+    total_casos: SEED_ARQUIVADOS.length,
+    casos_arquivados: SEED_ARQUIVADOS.length,
+    tempo_tratamento: tt,
+    categorias_predominantes: contarPor(SEED_ARQUIVADOS, c => c.validacao && c.validacao.categoria).map(([rotulo, n]) => ({ rotulo, n })),
+    ambientes_mencionados: contarPor(SEED_ARQUIVADOS, c => c.local).map(([rotulo, n]) => ({ rotulo, n })),
+    // Os seeds não têm campo `relato` (só o resultado final já processado) — nunca contam como
+    // "com recorrência", mas contam no total, exatamente como o cálculo antigo já fazia.
+    recorrencia: { com_recorrencia: 0, total: SEED_ARQUIVADOS.length },
+    evolucao_mensal: evolucaoMensal(SEED_ARQUIVADOS).map(([mes, n]) => ({ mes, n }))
+  };
+})();
+function somarRotuloN(a, b) {
+  const mapa = {};
+  (a || []).forEach(({ rotulo, n }) => { if (rotulo) mapa[rotulo] = (mapa[rotulo] || 0) + n; });
+  (b || []).forEach(({ rotulo, n }) => { if (rotulo) mapa[rotulo] = (mapa[rotulo] || 0) + n; });
+  return Object.entries(mapa).sort((x, y) => y[1] - x[1]);
+}
+function somarMesN(a, b) {
+  const mapa = {};
+  (a || []).forEach(({ mes, n }) => { mapa[mes] = (mapa[mes] || 0) + n; });
+  (b || []).forEach(({ mes, n }) => { mapa[mes] = (mapa[mes] || 0) + n; });
+  return Object.entries(mapa).sort((x, y) => (x[0] < y[0] ? -1 : 1));
+}
+function mediaPonderada(a, b) {
+  const soma = (a ? a.soma_dias : 0) + (b ? b.soma_dias : 0);
+  const n = (a ? a.contagem : 0) + (b ? b.contagem : 0);
+  return n ? soma / n : null;
+}
+function mesclarComSeed(rpc) {
+  if (!rpc) return null;
+  const s = SEED_AGREGADOS;
+  const totalRecorrencia = (rpc.recorrencia ? rpc.recorrencia.total : 0) + s.recorrencia.total;
+  const comRecorrencia = (rpc.recorrencia ? rpc.recorrencia.com_recorrencia : 0) + s.recorrencia.com_recorrencia;
+  return {
+    totalCasos: (rpc.total_casos || 0) + s.total_casos,
+    casosArquivados: (rpc.casos_arquivados || 0) + s.casos_arquivados,
+    casosAtivosAgora: rpc.casos_ativos_agora || 0,
+    emAcompanhamentoAgora: rpc.em_acompanhamento_agora || 0,
+    tempoResposta: mediaPonderada(rpc.tempo_resposta, null),
+    tempoTratamento: mediaPonderada(rpc.tempo_tratamento, s.tempo_tratamento),
+    cumprimentoEtapas: rpc.casos_ativos_agora
+      ? Math.round(((rpc.casos_encaminhados_ativos || 0) / rpc.casos_ativos_agora) * 100)
+      : null,
+    situacaoCasosAgora: (rpc.situacao_casos_ativos || []).map(x => [x.rotulo, x.n]),
+    categoriasPredominantes: somarRotuloN(rpc.categorias_predominantes, s.categorias_predominantes),
+    ambientesMencionados: somarRotuloN(rpc.ambientes_mencionados, s.ambientes_mencionados),
+    pctRecorrencia: totalRecorrencia ? Math.round((comRecorrencia / totalRecorrencia) * 100) : null,
+    evolucao: somarMesN(rpc.evolucao_mensal, s.evolucao_mensal)
+  };
+}
+
+function TelaRede({ navigate, casosVersao, colapsada, onColapsar }) {
   const [secao, setSecao] = useState("visao");
-  const casosAtivos = casos.filter(c => !c.arquivadoEm).sort((a, b) => new Date(b.enviadoEm) - new Date(a.enviadoEm));
-  const emAcompanhamentoAgora = casosAtivos.filter(c => c.encaminhamento && !prontoParaEncerrar(c)).length;
-  const totalCasos = arquivados.length + casos.length;
+  const [estadoRpc, setEstadoRpc] = useState("carregando"); // carregando | pronto | sem_acesso | erro
+  const [dadosReais, setDadosReais] = useState(null);
+  const [erroMsg, setErroMsg] = useState(null);
+
+  useEffect(() => {
+    let cancelado = false;
+    setEstadoRpc("carregando");
+    sb.rpc("indicadores_rede").then(({ data, error }) => {
+      if (cancelado) return;
+      if (error) {
+        // 42501 = a própria função indicadores_rede() recusou (sem perfil "rede"/admin no banco)
+        // — trata como um estado esperado, não um erro genérico de rede/conexão.
+        setEstadoRpc(error.code === "42501" || /acesso negado/.test(error.message || "") ? "sem_acesso" : "erro");
+        setErroMsg(error.message);
+        return;
+      }
+      setDadosReais(data);
+      setEstadoRpc("pronto");
+    });
+    return () => { cancelado = true; };
+  }, [casosVersao]);
 
   const dims = [
     ["Governança", 2], ["Prevenção", 1], ["Acessibilidade dos canais", 3], ["Gestão de casos", 3],
@@ -3654,25 +3861,23 @@ function TelaRede({ casos, navigate, arquivados, colapsada, onColapsar }) {
   ];
   function corN(n) { return n <= 1 ? "var(--danger)" : n <= 2 ? "var(--warn)" : n <= 3 ? "var(--ok)" : "var(--brand-600)"; }
 
-  // Só agregados — o diagrama oficial não dá a esta raia nenhuma tarefa de caso individual (ver
-  // comentário acima, Atualização 9.2), então nada aqui deriva de um `id`/`protocolo` específico.
-  const todosOsCasos = [...casos, ...arquivados].sort((a, b) => new Date(b.enviadoEm) - new Date(a.enviadoEm));
+  if (estadoRpc === "sem_acesso") {
+    return html`<${ProfileShell} profile="rede" navigate=${navigate} secoes=${SECOES_REDE}
+      ativa=${secao} onTrocar=${setSecao} colapsada=${colapsada} onColapsar=${onColapsar}>
+      <${Alert} tone="warn">Sua conta não tem permissão para ver os indicadores da rede.</${Alert}>
+    </${ProfileShell}>`;
+  }
+  if (estadoRpc === "erro") {
+    return html`<${ProfileShell} profile="rede" navigate=${navigate} secoes=${SECOES_REDE}
+      ativa=${secao} onTrocar=${setSecao} colapsada=${colapsada} onColapsar=${onColapsar}>
+      <${Alert} tone="danger">Erro ao carregar indicadores: ${esc(erroMsg || "")}</${Alert}>
+    </${ProfileShell}>`;
+  }
 
-  // Módulo de KPI (Operacional + Gerencial) — elementos observáveis do artigo, §7.1. "Tempo de
-  // resposta" agora mede enviadoEm → cienciaEm (quando o Gestor do Caso toma ciência) — no
-  // fluxograma v2 não existe mais um "recebimento" humano separado do envio.
-  const tempoResposta = mediaDias(todosOsCasos, c => c.enviadoEm, c => c.cienciaEm);
-  const tempoTratamento = mediaDias(todosOsCasos, c => c.enviadoEm, c => c.desfecho && c.desfecho.em);
-  const casosEncaminhados = casosAtivos.filter(c => c.encaminhamento).length;
-  const cumprimentoEtapas = casosAtivos.length ? Math.round((casosEncaminhados / casosAtivos.length) * 100) : null;
-  const situacaoCasosAgora = contarPor(casosAtivos, c => statusListagem(c).label);
-  const categoriasPredominantes = contarPor(todosOsCasos, c => c.validacao && c.validacao.categoria);
-  const ambientesMencionados = contarPor(todosOsCasos, c => c.local);
-  const comRecorrencia = todosOsCasos.filter(c => c.relato && analisar(c.relato).recorrencia.length > 0).length;
-  const pctRecorrencia = todosOsCasos.length ? Math.round((comRecorrencia / todosOsCasos.length) * 100) : null;
-  const evolucao = evolucaoMensal(todosOsCasos);
+  const m = mesclarComSeed(dadosReais);
+  const precisaDeM = secao === "visao" || secao === "kpi" || secao === "inteligencia" || secao === "alertas";
 
-  return html`<${ProfileShell} profile="rede" navigate=${navigate} casos=${casos}
+  return html`<${ProfileShell} profile="rede" navigate=${navigate}
     secoes=${SECOES_REDE} ativa=${secao} onTrocar=${setSecao}
     colapsada=${colapsada} onColapsar=${onColapsar}>
 
@@ -3680,14 +3885,16 @@ function TelaRede({ casos, navigate, arquivados, colapsada, onColapsar }) {
           painel agregaria dados de várias escolas da rede; aqui, no protótipo, reaproveita os
           dados desta escola única de demonstração.</${Alert}>
 
-        ${secao === "visao" && html`
+        ${!m && precisaDeM && html`<${Alert} tone="info">Carregando indicadores…</${Alert}>`}
+
+        ${m && secao === "visao" && html`
           <div class="card">
             <h3>Indicadores institucionais</h3>
             <div class="tiles">
-              <div class="tile"><div class="n">${totalCasos}</div><div class="lbl">Casos no sistema</div></div>
-              <div class="tile"><div class="n">${arquivados.length}</div><div class="lbl">Casos arquivados</div></div>
-              <div class="tile"><div class="n">${emAcompanhamentoAgora}</div><div class="lbl">Em acompanhamento agora</div></div>
-              <div class="tile"><div class="n">${fmtDias(tempoResposta)}</div><div class="lbl">Tempo médio de resposta</div></div>
+              <div class="tile"><div class="n">${m.totalCasos}</div><div class="lbl">Casos no sistema</div></div>
+              <div class="tile"><div class="n">${m.casosArquivados}</div><div class="lbl">Casos arquivados</div></div>
+              <div class="tile"><div class="n">${m.emAcompanhamentoAgora}</div><div class="lbl">Em acompanhamento agora</div></div>
+              <div class="tile"><div class="n">${fmtDias(m.tempoResposta)}</div><div class="lbl">Tempo médio de resposta</div></div>
             </div>
             <p class="dica">Números calculados sobre os registros reais desta demonstração — veja
               o detalhamento completo em "Indicadores e KPI". Esta raia não acessa casos
@@ -3716,7 +3923,7 @@ function TelaRede({ casos, navigate, arquivados, colapsada, onColapsar }) {
           </div>
         `}
 
-        ${secao === "kpi" && html`
+        ${m && secao === "kpi" && html`
           <${Alert} tone="info">Elementos observáveis conforme o artigo do TCC, seção 7.1 ("Do caso
             individual aos indicadores agregados"). O artigo não define fórmula nem meta pra
             nenhum deles — os números abaixo são calculados sobre os casos reais desta
@@ -3726,68 +3933,68 @@ function TelaRede({ casos, navigate, arquivados, colapsada, onColapsar }) {
             <h3><${Icon} name="activity" size=${18} /> Painel Operacional</h3>
             <p class="card-sub">O que precisa de atenção agora, sobre os casos ativos.</p>
             <div class="tiles">
-              <div class="tile"><div class="n">${fmtDias(tempoResposta)}</div><div class="lbl">Tempo médio de resposta</div></div>
-              <div class="tile"><div class="n">${fmtDias(tempoTratamento)}</div><div class="lbl">Tempo médio de tratamento</div></div>
-              <div class="tile"><div class="n">${cumprimentoEtapas === null ? "—" : cumprimentoEtapas + "%"}</div><div class="lbl">Cumprimento de etapas</div></div>
-              <div class="tile"><div class="n">${casosAtivos.length}</div><div class="lbl">Casos ativos agora</div></div>
+              <div class="tile"><div class="n">${fmtDias(m.tempoResposta)}</div><div class="lbl">Tempo médio de resposta</div></div>
+              <div class="tile"><div class="n">${fmtDias(m.tempoTratamento)}</div><div class="lbl">Tempo médio de tratamento</div></div>
+              <div class="tile"><div class="n">${m.cumprimentoEtapas === null ? "—" : m.cumprimentoEtapas + "%"}</div><div class="lbl">Cumprimento de etapas</div></div>
+              <div class="tile"><div class="n">${m.casosAtivosAgora}</div><div class="lbl">Casos ativos agora</div></div>
             </div>
             <p class="card-sub" style=${{ marginTop: "18px" }}>Situação dos casos ativos</p>
-            ${situacaoCasosAgora.length
-              ? html`<${BarraRanking} itens=${situacaoCasosAgora} corBarra="var(--brand-600)" />`
+            ${m.situacaoCasosAgora.length
+              ? html`<${BarraRanking} itens=${m.situacaoCasosAgora} corBarra="var(--brand-600)" />`
               : html`<p class="dica">Nenhum caso ativo no momento.</p>`}
           </div>
 
           <div class="card">
             <h3><${Icon} name="bar-chart" size=${18} /> Painel Gerencial</h3>
             <p class="card-sub">Padrões para decisão institucional, olhando o histórico completo
-              (${totalCasos} caso${totalCasos === 1 ? "" : "s"} no total).</p>
+              (${m.totalCasos} caso${m.totalCasos === 1 ? "" : "s"} no total).</p>
             <div class="tiles">
-              <div class="tile"><div class="n">${todosOsCasos.length}</div><div class="lbl">Frequência de registros (total)</div></div>
-              <div class="tile"><div class="n">${pctRecorrencia === null ? "—" : pctRecorrencia + "%"}</div><div class="lbl">Casos com indício de recorrência</div></div>
+              <div class="tile"><div class="n">${m.totalCasos}</div><div class="lbl">Frequência de registros (total)</div></div>
+              <div class="tile"><div class="n">${m.pctRecorrencia === null ? "—" : m.pctRecorrencia + "%"}</div><div class="lbl">Casos com indício de recorrência</div></div>
             </div>
             <div class="grid-2" style=${{ marginTop: "18px" }}>
               <div>
                 <p class="card-sub">Categorias predominantes</p>
-                ${categoriasPredominantes.length
-                  ? html`<${BarraRanking} itens=${categoriasPredominantes} corBarra="var(--brand-600)" />`
+                ${m.categoriasPredominantes.length
+                  ? html`<${BarraRanking} itens=${m.categoriasPredominantes} corBarra="var(--brand-600)" />`
                   : html`<p class="dica">Nenhum caso validado ainda.</p>`}
               </div>
               <div>
                 <p class="card-sub">Ambientes mencionados</p>
-                ${ambientesMencionados.length
-                  ? html`<${BarraRanking} itens=${ambientesMencionados} corBarra="var(--pub-a)" />`
+                ${m.ambientesMencionados.length
+                  ? html`<${BarraRanking} itens=${m.ambientesMencionados} corBarra="var(--pub-a)" />`
                   : html`<p class="dica">Nenhum ambiente informado nos relatos ainda.</p>`}
               </div>
             </div>
             <p class="card-sub" style=${{ marginTop: "18px" }}>Evolução mensal (relatos por mês) — "Monitorar padrões e recorrências"</p>
-            ${evolucao.length
-              ? html`<${BarraRanking} itens=${evolucao.map(([mes, n]) => [nomeMes(mes), n])} corBarra="var(--ok)" />`
+            ${m.evolucao.length
+              ? html`<${BarraRanking} itens=${m.evolucao.map(([mes, n]) => [nomeMes(mes), n])} corBarra="var(--ok)" />`
               : html`<p class="dica">Sem dados suficientes para evolução temporal ainda.</p>`}
           </div>
         `}
 
 
-        ${secao === "inteligencia" && html`
+        ${m && secao === "inteligencia" && html`
           <${DestaqueIAPerfil}
             titulo="Inteligência estratégica da rede"
             subtitulo="A IA identifica tendências e padrões usando somente dados agregados nesta camada."
             itens=${[
-              { rotulo: "Registros com repetição", valor: pctRecorrencia === null ? "—" : pctRecorrencia + "%", dica: "Indício textual agregado." },
-              { rotulo: "Categoria predominante", valor: categoriasPredominantes.length ? categoriasPredominantes[0][0] : "Sem dados", dica: "Entre os casos já validados." },
-              { rotulo: "Ambiente mais citado", valor: ambientesMencionados.length ? ambientesMencionados[0][0] : "Sem dados", dica: "Leitura agregada." }
+              { rotulo: "Registros com repetição", valor: m.pctRecorrencia === null ? "—" : m.pctRecorrencia + "%", dica: "Indício textual agregado." },
+              { rotulo: "Categoria predominante", valor: m.categoriasPredominantes.length ? m.categoriasPredominantes[0][0] : "Sem dados", dica: "Entre os casos já validados." },
+              { rotulo: "Ambiente mais citado", valor: m.ambientesMencionados.length ? m.ambientesMencionados[0][0] : "Sem dados", dica: "Leitura agregada." }
             ]}
             recomendacao="Cruze evolução temporal, categorias predominantes e maturidade para priorizar apoio técnico e ações preventivas na rede."
             aviso="Esta camada não deve abrir casos individuais por padrão; trabalha com indicadores anonimizados e agregados."
           />
         `}
-        ${secao === "alertas" && html`
+        ${m && secao === "alertas" && html`
           <${DestaqueIAPerfil}
             titulo="Alertas estratégicos"
             subtitulo="Sinais para revisão da Secretaria antes de qualquer decisão de política ou intervenção."
             itens=${[
-              { rotulo: "Recorrência agregada", valor: pctRecorrencia === null ? "—" : pctRecorrencia + "%", dica: "Monitorar evolução." },
-              { rotulo: "Casos ativos", valor: casosAtivos.length, dica: "Sem exposição nominal." },
-              { rotulo: "Cumprimento de etapas", valor: cumprimentoEtapas === null ? "—" : cumprimentoEtapas + "%", dica: "Pode indicar necessidade de apoio." }
+              { rotulo: "Recorrência agregada", valor: m.pctRecorrencia === null ? "—" : m.pctRecorrencia + "%", dica: "Monitorar evolução." },
+              { rotulo: "Casos ativos", valor: m.casosAtivosAgora, dica: "Sem exposição nominal." },
+              { rotulo: "Cumprimento de etapas", valor: m.cumprimentoEtapas === null ? "—" : m.cumprimentoEtapas + "%", dica: "Pode indicar necessidade de apoio." }
             ]}
             recomendacao="Se um indicador se deteriorar de forma consistente, priorize suporte institucional, formação e revisão de aderência aos protocolos."
             aviso="Alertas estratégicos não são ranking punitivo de escolas e não devem ser usados isoladamente para responsabilização."
@@ -4388,6 +4595,11 @@ function App() {
      o caso que mudou/nasceu no Supabase; a assinatura realtime aplica o que outros dispositivos
      gravarem. */
   const [casos, setCasos] = useState([]);
+  // Contador de versão dos casos — a raia "rede" não recebe mais o array de casos (RLS/
+  // Atualização 13: ela não tem NENHUM acesso de leitura a `casos` no banco), então não pode
+  // reagir ao array mudando. Em vez disso, ela observa este número (bumped tanto pelo realtime
+  // quanto por um dispatch local bem-sucedido) e refaz o RPC agregado quando ele muda.
+  const [casosVersao, setCasosVersao] = useState(0);
   useEffect(() => {
     // Sem sessão (tela de login, ou visitante no canal anônimo) não há por que carregar/assinar
     // casos — a política de RLS de leitura é só para `authenticated` mesmo, então nem tentar.
@@ -4401,6 +4613,7 @@ function App() {
     const canal = sb.channel("casos-rt").on("postgres_changes",
       { event: "*", schema: "public", table: "casos" },
       payload => {
+        setCasosVersao(v => v + 1);
         if (payload.eventType === "DELETE") {
           setCasos(prev => prev.filter(c => c.id !== payload.old.id));
           return;
@@ -4435,7 +4648,10 @@ function App() {
         const query = criando
           ? sb.from("casos").insert(linha)
           : sb.from("casos").update(linha).eq("id", casoAlvo.id);
-        query.then(({ error }) => { if (error) showAviso("Erro ao salvar no banco: " + error.message); });
+        query.then(({ error }) => {
+          if (error) { showAviso("Erro ao salvar no banco: " + error.message); return; }
+          setCasosVersao(v => v + 1);
+        });
       }
       return novoArray;
     });
@@ -4584,7 +4800,7 @@ function App() {
     equipe: () => html`<${TelaEquipe} casos=${casos} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
     protecao: () => html`<${TelaProtecao} casos=${casos} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
     escola: () => html`<${TelaEscola} casos=${casos} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
-    rede: () => html`<${TelaRede} casos=${casos} navigate=${navigate} arquivados=${arquivados} colapsada=${colapsada} onColapsar=${onColapsar} />`
+    rede: () => html`<${TelaRede} navigate=${navigate} casosVersao=${casosVersao} colapsada=${colapsada} onColapsar=${onColapsar} />`
   };
   const perfilEfetivo = usuarioLogado.perfisPermitidos.includes(profile) ? profile : usuarioLogado.perfisPermitidos[0];
   const Screen = screens[perfilEfetivo] || screens[usuarioLogado.perfisPermitidos[0]];
