@@ -1633,26 +1633,18 @@ function casosReducer(casos, action) {
 }
 
 /* Padrão de fila reutilizado por Recepção, Profissional, Sistema (acompanhamento) e Instâncias:
-   filtra os casos pendentes daquela raia e mantém qual deles está selecionado pra agir. Se
-   `casoFoco` (o último caso que o usuário veio "seguindo" de outro perfil via os botões "Ver
-   como...") estiver na fila, prioriza ele; senão cai para o mais antigo pendente. */
-function useFilaCaso(casos, filtroPendente, casoFoco) {
+   filtra os casos pendentes daquela raia e mantém qual deles está selecionado pra agir. */
+function useFilaCaso(casos, filtroPendente) {
   const pendentes = casos.filter(filtroPendente).sort((a, b) => new Date(b.enviadoEm) - new Date(a.enviadoEm));
 
   // Regra de UX:
   // 1) A fila nunca abre um caso automaticamente.
-  // 2) O caso só é aberto após clique explícito do usuário (ou navegação explícita com casoFoco).
+  // 2) O caso só é aberto após clique explícito do usuário.
   // 3) Depois de aberto, o detalhe permanece visível mesmo que uma ação altere o status e
   //    retire o caso da fila atual. Isso evita o "sumiço" da tela após decisões como
   //    "Tratar diretamente".
   // 4) Ao trocar de menu/status, os próprios perfis chamam selecionar(null), fechando o detalhe.
   const [selecionadoId, setSelecionadoId] = useState(null);
-
-  useEffect(() => {
-    if (casoFoco && casos.some(c => c.id === casoFoco)) {
-      setSelecionadoId(casoFoco);
-    }
-  }, [casoFoco]);
 
   // Procura o selecionado na coleção completa, não apenas na fila filtrada.
   // Assim, uma mudança de status atualiza a fila, mas mantém aberto o caso que o usuário
@@ -2285,7 +2277,7 @@ const SECOES_DEMANDANTE = [
   { id: "meus", label: "Meus casos", icon: "list" }
 ];
 
-function TelaComunicante({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, onColapsar }) {
+function TelaComunicante({ casos, dispatch, navigate, colapsada, onColapsar }) {
   const { usuarioLogado } = useContext(SessaoContext) || SESSAO_PADRAO;
   const [secao, setSecao] = useState("novo");
   const [enviando, setEnviando] = useState(false);
@@ -2309,12 +2301,6 @@ function TelaComunicante({ casos, dispatch, navigate, casoFoco, onFoco, colapsad
     .sort((a, b) => new Date(b.enviadoEm) - new Date(a.enviadoEm));
   const meusRelatosFiltrados = filtrarPorBusca(meusRelatos, buscaMeus);
   const casoAberto = meusRelatos.find(c => c.id === casoAbertoId) || null;
-
-  // Abrir o caso vindo de outro perfil (ex.: alguém te mandando ver seu próprio caso) — mesmo
-  // padrão de casoFoco/onFoco que as outras Telas já usam, agora abrindo direto o modal.
-  useEffect(() => {
-    if (casoFoco) { setSecao("meus"); abrirCaso(casoFoco); }
-  }, [casoFoco]);
 
   function abrirCaso(id) {
     setCasoAbertoId(id);
@@ -2461,7 +2447,7 @@ const SECOES_GESTOR = [
   { id: "alertas", label: "Alertas e recorrências", icon: "alert-triangle" }
 ];
 
-function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFoco, colapsada, onColapsar }) {
+function TelaGestor({ casos, arquivados = [], dispatch, navigate, colapsada, onColapsar }) {
   // "Análise e encaminhamento" deixou de ser um item de menu separado — a fila de casos e o
   // detalhe do caso agora vivem dentro do próprio "Visão geral" (fundidos a pedido do usuário),
   // que também é a seção de entrada.
@@ -2474,11 +2460,7 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
     if (secao === "encerrados") return !!c.desfecho;
     return !c.arquivadoEm;
   }
-  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroGestor, casoFoco);
-  // Navegação "Ver como o Gestor do Caso conduz/encerra este caso" (vinda de outras raias) abre
-  // o caso via casoFoco — garante que a seção certa (Visão geral, onde mora o detalhe do caso)
-  // esteja ativa, senão o caso abriria "por baixo" de outra seção, invisível.
-  useEffect(() => { if (casoFoco) setSecao("visao"); }, [casoFoco]);
+  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroGestor);
   // "Tomar ciência do caso" não é uma ação manual separada na prática — no momento em que o
   // Gestor do Caso abre/seleciona o caso, ele já está ciente dele. Em vez de um botão, a ciência
   // é registrada automaticamente assim que o caso selecionado ainda não tem cienciaEm.
@@ -2914,13 +2896,9 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
                 <button class="btn btn-secondary" onClick=${() => encaminhar("encerrar")}>Encerrar com justificativa</button>
               </div>`}
       ${sel.encaminhamento && sel.encaminhamento.decisao === "equipe" && !sel.equipeConcluidaEm && html`
-        <${Alert} tone="info">Aguardando a Equipe de Apoio concluir o acompanhamento deste caso.</${Alert}>
-        <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("equipe"); }}>
-          Ver Equipe de Apoio <${Icon} name="arrow-right" size=${16} /></button></div>`}
+        <${Alert} tone="info">Aguardando a Equipe de Apoio concluir o acompanhamento deste caso.</${Alert}>`}
       ${sel.encaminhamento && sel.encaminhamento.decisao === "escalonar" && !sel.decisaoInstitucional && html`
-        <${Alert} tone="info">Aguardando a decisão institucional da Gestão Escolar.</${Alert}>
-        <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("escola"); }}>
-          Ver Gestão Escolar <${Icon} name="arrow-right" size=${16} /></button></div>`}
+        <${Alert} tone="info">Aguardando a decisão institucional da Gestão Escolar.</${Alert}>`}
     </${StepCard}>
     <${BotaoAvancarPasso} passoAtual=${4} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
     `}
@@ -3045,16 +3023,12 @@ function TelaGestor({ casos, arquivados = [], dispatch, navigate, casoFoco, onFo
         : !critico
           ? html`<p class="dica">Não se aplica: este caso não foi classificado como crítico.</p>`
           : html`${sel.urgencia
-              ? html`<p class="dica">Rede de Proteção acionada em ${quando(sel.urgencia.em)}.</p>
-                  <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("protecao"); }}>
-                    Ver Rede de Proteção <${Icon} name="arrow-right" size=${16} /></button></div>`
+              ? html`<p class="dica">Rede de Proteção acionada em ${quando(sel.urgencia.em)}.</p>`
               : html`<${Alert} tone="danger"><b>Caso crítico.</b> Acione a Rede de Proteção / Órgãos Competentes e as medidas de proteção imediatamente. Isso é independente da decisão de encaminhamento acima.</${Alert}>
                   <div class="acoes"><button class="btn btn-danger" onClick=${() => dispatch({ type: "ACIONAR_URGENCIA", casoId: sel.id })}>
                     <${Icon} name="alert-triangle" size=${16} />Acionar Rede de Proteção</button></div>`}
             ${sel.urgencia && !parecerConcluido(sel) && html`
-              <${Alert} tone="warn">Aguardando o parecer da Rede de Proteção / Órgãos Competentes.</${Alert}>
-              <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("protecao"); }}>
-                Ver Rede de Proteção <${Icon} name="arrow-right" size=${16} /></button></div>`}`}
+              <${Alert} tone="warn">Aguardando o parecer da Rede de Proteção / Órgãos Competentes.</${Alert}>`}`}
     </${StepCard}>
     <${BotaoAvancarPasso} passoAtual=${7} statusPasso=${statusPasso} onAvancar=${setAbaAtiva} />
     `}
@@ -3183,7 +3157,7 @@ const SECOES_PROTECAO = [
   { id: "ia-contexto", label: "Resumo assistido pela IA", icon: "cpu" }
 ];
 
-function TelaProtecao({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, onColapsar }) {
+function TelaProtecao({ casos, dispatch, navigate, colapsada, onColapsar }) {
   const [secao, setSecao] = useState("status");
   function filtroProtecao(c) {
     if (!isCritico(c) || !c.urgencia || c.arquivadoEm) return false;
@@ -3191,7 +3165,7 @@ function TelaProtecao({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, 
     if (secao === "status") return !c.parecer;
     return !parecerConcluido(c);
   }
-  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroProtecao, casoFoco);
+  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroProtecao);
   const aguardandoUrgencia = casos.filter(c => isCritico(c) && !c.urgencia).length;
   const [instancia, setInstancia] = useState(INSTANCIAS_OPCOES[0]);
   const [decisao, setDecisao] = useState(PARECER_DECISOES[0]);
@@ -3300,9 +3274,6 @@ function TelaProtecao({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, 
                     : html`<${Alert} tone="ok">Papel desta instância encerrado — o caso já pode
                         ser encerrado pelo Gestor do Caso.</${Alert}>`}
                 `}
-
-                ${parecerConcluido(sel) && html`<div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("gestor"); }}>
-                  Ir para o encerramento com o Gestor do Caso <${Icon} name="arrow-right" size=${16} /></button></div>`}
               `}
           </${StepCard}>
         `}
@@ -3336,22 +3307,15 @@ const SECOES_EQUIPE = [
   { id: "ia-execucao", label: "Sugestões para execução", icon: "cpu" }
 ];
 
-function TelaEquipe({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, onColapsar }) {
+function TelaEquipe({ casos, dispatch, navigate, colapsada, onColapsar }) {
   const [secao, setSecao] = useState("visao");
   const [registro, setRegistro] = useState("");
-  // Continua visível depois de concluído (até ser arquivado) — igual à Gestão Escolar — pra dar
-  // espaço ao botão "Ver como o Gestor do Caso encerra este caso" logo abaixo da conclusão, em
-  // vez do caso simplesmente sumir da fila sem indicar pra onde o fluxo vai.
+  // Continua na fila mesmo depois de concluído, até ser arquivado (igual à Gestão Escolar) — sem
+  // mais ação nenhuma pra Equipe fazer ali, mas o caso não deve sumir da vista dela.
   function filtroEquipe(c) {
-    const atribuido = c.encaminhamento && c.encaminhamento.decisao === "equipe" && !c.arquivadoEm;
-    if (!atribuido) return false;
-    if (secao === "visao") return !c.equipeConcluidaEm;
-    return atribuido;
+    return !!(c.encaminhamento && c.encaminhamento.decisao === "equipe" && !c.arquivadoEm);
   }
-  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroEquipe, casoFoco);
-  // Mesma correção da Tela do Gestor: casoFoco abre o caso, mas o conteúdo só renderiza dentro
-  // de uma das seções de fila — sem isso, o caso abriria "por baixo" da Visão geral.
-  useEffect(() => { if (casoFoco) setSecao("visao"); }, [casoFoco]);
+  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroEquipe);
   const a = sel ? analisar(sel.relato) : null;
   // Mesmo padrão de auto-desabilitar no clique usado no Gestor do Caso — evita um segundo clique
   // disparar EQUIPE_CONCLUIR de novo antes do estado atualizar; reseta ao trocar de caso.
@@ -3434,9 +3398,8 @@ function TelaEquipe({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
     <${StepCard} n=${3} title="Acompanhar evolução do caso e monitorar prazos" status=${sel.equipeConcluidaEm ? "concluido" : "atual"}>
       <p class="card-sub">Prazo de referência (conforme a prioridade validada): <b>${PRAZO[sel.validacao.prioridade]}</b>.</p>
       ${sel.equipeConcluidaEm
-        ? html`<p class="dica">Acompanhamento concluído em ${quando(sel.equipeConcluidaEm)}.</p>
-            <div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("gestor"); }}>
-              Ver como o Gestor do Caso encerra este caso <${Icon} name="arrow-right" size=${16} /></button></div>`
+        ? html`<p class="dica">Acompanhamento concluído em ${quando(sel.equipeConcluidaEm)}. O
+            encerramento segue com o Gestor do Caso.</p>`
         : html`<div class="acoes"><button class="btn btn-primary" disabled=${concluindo} onClick=${() => { setConcluindo(true); showConfirm({
             titulo: "Concluir acompanhamento da Equipe de Apoio",
             mensagem: "Esta ação é definitiva: depois de concluído, não é mais possível adicionar novos registros aqui; o Gestor do Caso segue para o encerramento.",
@@ -3593,7 +3556,7 @@ const SECOES_ESCOLA = [
   { id: "governanca", label: "Governança e Proteção", icon: "shield-check" }
 ];
 
-function TelaEscola({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, onColapsar }) {
+function TelaEscola({ casos, dispatch, navigate, colapsada, onColapsar }) {
   const [secao, setSecao] = useState("painel");
   const [decisaoTexto, setDecisaoTexto] = useState("");
   function filtroEscola(c) {
@@ -3602,10 +3565,7 @@ function TelaEscola({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
     if (secao === "painel") return !!(c.encaminhamento && c.encaminhamento.decisao === "escalonar" && !c.decisaoInstitucional);
     return !c.arquivadoEm;
   }
-  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroEscola, casoFoco);
-  // Mesma correção da Tela do Gestor: casoFoco abre o caso, mas o conteúdo só renderiza dentro
-  // de "Painel"/"Casos críticos" — sem isso, o caso abriria "por baixo" do Painel.
-  useEffect(() => { if (casoFoco) setSecao("painel"); }, [casoFoco]);
+  const [pendentes, sel, selecionar] = useFilaCaso(casos, filtroEscola);
 
   function registrarDecisao() {
     if (!decisaoTexto.trim()) { showAviso("Escreva a decisão institucional antes de registrar."); return; }
@@ -3668,8 +3628,6 @@ function TelaEscola({ casos, dispatch, navigate, casoFoco, onFoco, colapsada, on
               ${sel.acompanhamentos.map((ac, i) => html`<li key=${i}><div class="quando">${quando(ac.em)}</div><b>Registro de acompanhamento</b><div>${esc(ac.texto)}</div></li>`)}
             </ul>`
           : html`<p class="dica">Nenhuma providência da Equipe de Apoio registrada para este encaminhamento.</p>`}
-      ${sel.decisaoInstitucional && html`<div class="acoes"><button class="btn btn-secondary" onClick=${() => { onFoco(sel.id); navigate("gestor"); }}>
-        Ver como o Gestor do Caso encerra este caso <${Icon} name="arrow-right" size=${16} /></button></div>`}
     </${StepCard}>
     `)}
 
@@ -4542,10 +4500,6 @@ function TelaAdministracao({ usuarios, onTogglePerfil, onToggleAdmin, onVoltar, 
 /* ============================================================== app raiz */
 function App() {
   const [profile, navigate] = useHashRoute("comunicante");
-  // "Caso em foco": o último caso que o usuário veio "seguindo" de outro perfil via os botões
-  // "Ver como [a próxima raia] processa este caso" — cada tela com fila usa isso pra
-  // pré-selecionar o caso certo (ver useFilaCaso), em vez de sempre cair no mais antigo pendente.
-  const [casoFoco, setCasoFoco] = useState(null);
   // Sidebar única, recolhível — estado vive aqui (não em ProfileShell) pra persistir a
   // preferência ao trocar de perfil, já que cada Tela* é um componente diferente que remonta.
   const [colapsada, setColapsada] = useState(false);
@@ -4728,7 +4682,6 @@ function App() {
         const { error } = await sb.from("casos").delete().not("id", "is", null);
         if (error) { showAviso("Erro ao limpar: " + error.message); return; }
         setCasos([]);
-        setCasoFoco(null);
         navigate("comunicante");
         showAviso("Todos os casos foram apagados do banco.");
       }
@@ -4795,11 +4748,11 @@ function App() {
   }
 
   const screens = {
-    comunicante: () => html`<${TelaComunicante} casos=${casos} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
-    gestor: () => html`<${TelaGestor} casos=${casos} arquivados=${arquivados} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
-    equipe: () => html`<${TelaEquipe} casos=${casos} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
-    protecao: () => html`<${TelaProtecao} casos=${casos} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
-    escola: () => html`<${TelaEscola} casos=${casos} dispatch=${dispatch} navigate=${navigate} casoFoco=${casoFoco} onFoco=${setCasoFoco} colapsada=${colapsada} onColapsar=${onColapsar} />`,
+    comunicante: () => html`<${TelaComunicante} casos=${casos} dispatch=${dispatch} navigate=${navigate} colapsada=${colapsada} onColapsar=${onColapsar} />`,
+    gestor: () => html`<${TelaGestor} casos=${casos} arquivados=${arquivados} dispatch=${dispatch} navigate=${navigate} colapsada=${colapsada} onColapsar=${onColapsar} />`,
+    equipe: () => html`<${TelaEquipe} casos=${casos} dispatch=${dispatch} navigate=${navigate} colapsada=${colapsada} onColapsar=${onColapsar} />`,
+    protecao: () => html`<${TelaProtecao} casos=${casos} dispatch=${dispatch} navigate=${navigate} colapsada=${colapsada} onColapsar=${onColapsar} />`,
+    escola: () => html`<${TelaEscola} casos=${casos} dispatch=${dispatch} navigate=${navigate} colapsada=${colapsada} onColapsar=${onColapsar} />`,
     rede: () => html`<${TelaRede} navigate=${navigate} casosVersao=${casosVersao} colapsada=${colapsada} onColapsar=${onColapsar} />`
   };
   const perfilEfetivo = usuarioLogado.perfisPermitidos.includes(profile) ? profile : usuarioLogado.perfisPermitidos[0];
