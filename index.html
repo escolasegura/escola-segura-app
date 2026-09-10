@@ -4083,7 +4083,6 @@ function TelaLogin({ onEntrar, onRelatoAnonimo, onIrParaCadastro }) {
    perfil liberado ainda. O Administrador concede acesso depois pela tela de Administração. */
 function TelaCadastro({ onVoltar, onCadastrado }) {
   const [nome, setNome] = useState("");
-  const [cargo, setCargo] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -4107,7 +4106,7 @@ function TelaCadastro({ onVoltar, onCadastrado }) {
       // usa o "Site URL" configurado no painel do Supabase (que pode estar apontando pra um
       // domínio sem GitHub Pages ativo) em vez de voltar pra onde a pessoa realmente se cadastrou.
       options: { emailRedirectTo: location.href.split("#")[0], data: {
-        nome: nome.trim(), cargo: cargo.trim() || null,
+        nome: nome.trim(),
         maior_de_idade: maiorDeIdade, termos_aceitos_em: new Date().toISOString()
       } }
     });
@@ -4123,14 +4122,12 @@ function TelaCadastro({ onVoltar, onCadastrado }) {
         <div>Escola Segura<small>Criar conta</small></div>
       </div>
       <h1 style=${{ textAlign: "center" }}>Criar sua conta</h1>
-      <p class="lede" style=${{ textAlign: "center" }}>Sua conta nasce sem nenhum perfil liberado
-        — peça ao Administrador do sistema para conceder acesso à(s) raia(s) que cabem ao seu
-        papel.</p>
+      <p class="lede" style=${{ textAlign: "center" }}>Sua conta já nasce com acesso ao canal do
+        Comunicante — se você tiver outro papel na escola (Gestor do Caso, Equipe de Apoio etc.),
+        peça ao Administrador do sistema para liberar a raia correspondente.</p>
       <form onSubmit=${cadastrar}>
         <div class="field"><label>Nome</label>
           <input type="text" value=${nome} onChange=${e => setNome(e.target.value)} disabled=${enviando} /></div>
-        <div class="field"><label>Cargo (opcional)</label>
-          <input type="text" placeholder="Ex.: Coordenador Pedagógico" value=${cargo} onChange=${e => setCargo(e.target.value)} disabled=${enviando} /></div>
         <div class="field"><label>E-mail</label>
           <input type="email" autoComplete="username" value=${email} onChange=${e => setEmail(e.target.value)} disabled=${enviando} /></div>
         <div class="field"><label>Senha</label>
@@ -4150,11 +4147,10 @@ function TelaCadastro({ onVoltar, onCadastrado }) {
         <details class="rodape-papel" style=${{ margin: "6px 0 14px" }}>
           <summary>Termos de Uso e Tratamento de Dados</summary>
           <div class="rodape-papel-corpo">
-            <p><b>1. O que coletamos.</b> Para criar sua conta, guardamos nome, cargo (se
-              informado), e-mail e senha (a senha nunca fica visível para ninguém, inclusive a
-              equipe do sistema — é armazenada de forma criptografada). Esses dados servem só para
-              identificar quem acessa o sistema e controlar quais raias/telas cada pessoa pode
-              usar.</p>
+            <p><b>1. O que coletamos.</b> Para criar sua conta, guardamos nome, e-mail e senha (a
+              senha nunca fica visível para ninguém, inclusive a equipe do sistema — é armazenada
+              de forma criptografada). Esses dados servem só para identificar quem acessa o
+              sistema e controlar quais raias/telas cada pessoa pode usar.</p>
             <p><b>2. Base legal.</b> O tratamento segue a Lei Geral de Proteção de Dados — LGPD
               (Lei nº 13.709/2018), art. 7º, incisos I (consentimento, que você está dando agora)
               e IX (legítimo interesse da escola em controlar o acesso ao sistema). Quando a conta
@@ -4300,11 +4296,29 @@ const SECOES_ADMIN = [
   { id: "dados", label: "Proteção de dados", icon: "lock" }
 ];
 
-function TelaAdministracao({ usuarios, onTogglePerfil, onToggleAdmin, onVoltar, colapsada, onColapsar }) {
+function TelaAdministracao({ usuarios, onTogglePerfil, onToggleAdmin, onSalvarPerfis, onVoltar, colapsada, onColapsar }) {
   const [secao, setSecao] = useState("usuarios");
   const [novosTermos, setNovosTermos] = useState({});
   const [novaCategoria, setNovaCategoria] = useState("");
   const [versaoRegras, setVersaoRegras] = useState(0);
+
+  // Marcar um perfil diferente do padrão (Comunicante) fica só como rascunho local até o Admin
+  // clicar "Confirmar" -- evita conceder/revogar uma raia sensível com um clique só sem querer.
+  const [rascunhos, setRascunhos] = useState({});
+  function alternarRascunho(u, perfilId) {
+    setRascunhos(r => {
+      const base = r[u.id] || u.perfisPermitidos;
+      const novo = base.includes(perfilId) ? base.filter(p => p !== perfilId) : [...base, perfilId];
+      return { ...r, [u.id]: novo };
+    });
+  }
+  function confirmarRascunho(u) {
+    onSalvarPerfis(u.id, rascunhos[u.id]);
+    setRascunhos(r => { const c = { ...r }; delete c[u.id]; return c; });
+  }
+  function cancelarRascunho(u) {
+    setRascunhos(r => { const c = { ...r }; delete c[u.id]; return c; });
+  }
 
   // Redefinir senha de outra conta sem depender de e-mail: chama a Edge Function
   // "admin-reset-password" (guarda a service_role key no servidor, nunca no navegador — ver
@@ -4351,8 +4365,9 @@ function TelaAdministracao({ usuarios, onTogglePerfil, onToggleAdmin, onVoltar, 
 
         ${secao === "usuarios" && html`
           <${Alert} tone="info">Contas são criadas pela própria pessoa em "Criar conta", na tela
-            de login — nascem sem nenhum perfil liberado. Aqui o Admin só concede/revoga acesso a
-            contas que já existem.</${Alert}>
+            de login — já nascem com o perfil Comunicante liberado. Aqui o Admin concede/revoga os
+            demais perfis. Marcar um perfil diferente do padrão (Comunicante) só entra em vigor
+            depois de clicar em "Confirmar" na linha da pessoa.</${Alert}>
           <div class="card" style=${{ overflowX: "auto" }}>
             <h3>Usuários e permissões</h3>
             ${usuarios.length === 0
@@ -4362,14 +4377,25 @@ function TelaAdministracao({ usuarios, onTogglePerfil, onToggleAdmin, onVoltar, 
                 <th>Usuário</th>
                 ${ACTORS.map(a => html`<th key=${a.id}>${a.label}</th>`)}
                 <th>Admin</th>
+                <th>Alterações</th>
                 <th>Senha</th>
               </tr></thead>
               <tbody>
-                ${usuarios.map(u => html`<tr key=${u.id}>
+                ${usuarios.map(u => { const rascunho = rascunhos[u.id]; const perfisExibidos = rascunho || u.perfisPermitidos;
+                  const pendente = !!rascunho && JSON.stringify([...rascunho].sort()) !== JSON.stringify([...u.perfisPermitidos].sort());
+                  return html`<tr key=${u.id}>
                   <td><b>${u.nome}</b><br /><span class="dica" style=${{ margin: 0 }}>${u.cargo || "Sem cargo informado"}${u.admin ? " · Administrador" : ""}</span></td>
                   ${ACTORS.map(a => html`<td key=${a.id}>
-                    <input type="checkbox" checked=${u.perfisPermitidos.includes(a.id)} onChange=${() => onTogglePerfil(u.id, a.id)} /></td>`)}
+                    ${a.id === "comunicante"
+                      ? html`<input type="checkbox" checked=${u.perfisPermitidos.includes("comunicante")} onChange=${() => onTogglePerfil(u.id, "comunicante")} />`
+                      : html`<input type="checkbox" checked=${perfisExibidos.includes(a.id)} onChange=${() => alternarRascunho(u, a.id)} />`}</td>`)}
                   <td><input type="checkbox" checked=${!!u.admin} onChange=${() => onToggleAdmin(u.id)} /></td>
+                  <td style=${{ minWidth: "160px" }}>
+                    ${pendente && html`<div class="acoes" style=${{ marginTop: 0 }}>
+                      <button class="btn btn-primary" onClick=${() => confirmarRascunho(u)}>Confirmar</button>
+                      <button class="btn btn-secondary" onClick=${() => cancelarRascunho(u)}>Cancelar</button>
+                    </div>`}
+                  </td>
                   <td style=${{ minWidth: "220px" }}>
                     ${redefinindoId === u.id
                       ? html`<div style=${{ display: "flex", gap: "6px", alignItems: "center" }}>
@@ -4383,7 +4409,7 @@ function TelaAdministracao({ usuarios, onTogglePerfil, onToggleAdmin, onVoltar, 
                       : html`<button class="btn btn-secondary" onClick=${() => { setRedefinindoId(u.id); setNovaSenhaAdmin(""); }}>
                           Redefinir senha</button>`}
                   </td>
-                </tr>`)}
+                </tr>`; })}
               </tbody>
             </table>`}
           </div>
@@ -4638,6 +4664,14 @@ function App() {
     sb.from("perfis").update({ perfis_permitidos: novosPerfis }).eq("id", userId)
       .then(({ error }) => { if (error) showAviso("Erro ao salvar permissão: " + error.message); });
   }
+  // Usado só pra confirmar de uma vez um conjunto de perfis diferentes do padrão (Comunicante) —
+  // ver o rascunho por linha em TelaAdministracao. Substitui o array inteiro em vez de alternar
+  // um perfil por vez, pra não perder toggles feitos antes de clicar "Confirmar".
+  function onSalvarPerfis(userId, perfisPermitidos) {
+    setUsuariosAdmin(us => us.map(u => u.id === userId ? { ...u, perfisPermitidos } : u));
+    sb.from("perfis").update({ perfis_permitidos: perfisPermitidos }).eq("id", userId)
+      .then(({ error }) => { if (error) showAviso("Erro ao salvar permissão: " + error.message); });
+  }
   function onToggleAdmin(userId) {
     const alvo = usuariosAdmin.find(u => u.id === userId);
     const novoAdmin = !alvo.admin;
@@ -4745,7 +4779,7 @@ function App() {
     // logado de verdade (nome/cargo no rodapé), não o fallback SESSAO_PADRAO.
     return html`<${SessaoContext.Provider} value=${{ usuarioLogado, onSair: sair, onAdministracao: () => setTelaAdmin(true) }}>
       <div><${AvisoHost} /><${ConfirmHost} /><${TelaAdministracao} usuarios=${usuariosAdmin}
-        onTogglePerfil=${onTogglePerfil} onToggleAdmin=${onToggleAdmin}
+        onTogglePerfil=${onTogglePerfil} onToggleAdmin=${onToggleAdmin} onSalvarPerfis=${onSalvarPerfis}
         onVoltar=${() => setTelaAdmin(false)} colapsada=${colapsada} onColapsar=${onColapsar} /></div>
     </${SessaoContext.Provider}>`;
   }
