@@ -4103,7 +4103,10 @@ function TelaCadastro({ onVoltar, onCadastrado }) {
     setEnviando(true);
     const { error } = await sb.auth.signUp({
       email: email.trim(), password: senha,
-      options: { data: {
+      // Mesmo padrão do "esqueci minha senha" abaixo: sem isso, o link do e-mail de confirmação
+      // usa o "Site URL" configurado no painel do Supabase (que pode estar apontando pra um
+      // domínio sem GitHub Pages ativo) em vez de voltar pra onde a pessoa realmente se cadastrou.
+      options: { emailRedirectTo: location.href.split("#")[0], data: {
         nome: nome.trim(), cargo: cargo.trim() || null,
         maior_de_idade: maiorDeIdade, termos_aceitos_em: new Date().toISOString()
       } }
