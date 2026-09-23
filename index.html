@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MGBE · Escola Segura</title>
+<title>MGBE · Elo Escolar</title>
 <!--
-  Protótipo de ALTA FIDELIDADE - MGBE (Escola Segura), em React.
+  Protótipo de ALTA FIDELIDADE - MGBE (Elo Escolar), em React.
   Arquivo único, sem build: React 18, ReactDOM 18 e htm (JSX via template
   strings, sem Babel) estão embutidos inline abaixo.
 
@@ -1948,7 +1948,7 @@ function ProfileShell({ profile, titulo, subtitulo, navigate, casos, secoes, ati
     <aside class="gestao-sidebar app-sidebar">
       <div class="sidebar-top">
         <div class="brand"><span class="mark"><${Icon} name="shield" size=${15} /></span>
-          <div class="brand-text">Escola Segura<small>MGBE-IA</small></div></div>
+          <div class="brand-text">Elo Escolar<small>MGBE-IA</small></div></div>
         <button class="sidebar-toggle" title=${colapsada ? "Expandir menu" : "Recolher menu"} onClick=${onColapsar}>
           <${Icon} name=${colapsada ? "arrow-right" : "arrow-left"} size=${15} />
         </button>
@@ -4026,7 +4026,7 @@ function TelaLogin({ onEntrar, onRelatoAnonimo, onIrParaCadastro }) {
     <div class="login-card">
       <div class="brand" style=${{ justifyContent: "center", marginBottom: "16px" }}>
         <span class="mark"><${Icon} name="shield" size=${16} /></span>
-        <div>Escola Segura<small>MGBE-IA — protótipo de alta fidelidade</small></div>
+        <div>Elo Escolar<small>MGBE-IA — protótipo de alta fidelidade</small></div>
       </div>
       <h1 style=${{ textAlign: "center" }}>Entrar no sistema</h1>
       <p class="lede" style=${{ textAlign: "center" }}>Entre com a conta cadastrada. Se ainda não
@@ -4119,7 +4119,7 @@ function TelaCadastro({ onVoltar, onCadastrado }) {
     <div class="login-card">
       <div class="brand" style=${{ justifyContent: "center", marginBottom: "16px" }}>
         <span class="mark"><${Icon} name="shield" size=${16} /></span>
-        <div>Escola Segura<small>Criar conta</small></div>
+        <div>Elo Escolar<small>Criar conta</small></div>
       </div>
       <h1 style=${{ textAlign: "center" }}>Criar sua conta</h1>
       <p class="lede" style=${{ textAlign: "center" }}>Sua conta já nasce com acesso ao canal do
@@ -4212,7 +4212,7 @@ function TelaRedefinirSenha({ onDefinida }) {
     <div class="login-card">
       <div class="brand" style=${{ justifyContent: "center", marginBottom: "16px" }}>
         <span class="mark"><${Icon} name="shield" size=${16} /></span>
-        <div>Escola Segura<small>Definir nova senha</small></div>
+        <div>Elo Escolar<small>Definir nova senha</small></div>
       </div>
       <h1 style=${{ textAlign: "center" }}>Escolha uma senha nova</h1>
       <form onSubmit=${definir}>
@@ -4245,7 +4245,7 @@ function TelaRelatoAnonimo({ enviado, enviando, onEnviar, onVoltar, protocolo })
     <div class="login-card" style=${{ maxWidth: "640px" }}>
       <div class="brand" style=${{ justifyContent: "center", marginBottom: "16px" }}>
         <span class="mark"><${Icon} name="shield" size=${16} /></span>
-        <div>Escola Segura<small>Canal público — relatar sem login</small></div>
+        <div>Elo Escolar<small>Canal público — relatar sem login</small></div>
       </div>
       ${!enviado ? html`
         <h1 style=${{ textAlign: "center" }}>Você pode falar com segurança</h1>
@@ -4764,7 +4764,7 @@ function App() {
       <div class="login-shell"><div class="login-card">
         <div class="brand" style=${{ justifyContent: "center", marginBottom: "16px" }}>
           <span class="mark"><${Icon} name="shield" size=${16} /></span>
-          <div>Escola Segura<small>Conta aguardando liberação</small></div>
+          <div>Elo Escolar<small>Conta aguardando liberação</small></div>
         </div>
         <p class="lede" style=${{ textAlign: "center" }}>Sua conta (<b>${usuarioLogado.nome}</b>)
           foi criada, mas ainda não tem nenhum perfil liberado. Peça ao Administrador do sistema
